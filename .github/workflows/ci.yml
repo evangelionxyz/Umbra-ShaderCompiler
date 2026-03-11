@@ -148,7 +148,7 @@ jobs:
         if: steps.vulkan_libs.outputs.can_build == 'true'
         shell: pwsh
         run: |
-          cmake -S . -B build/${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.vs_platform }} -DIGNITECOMPILER_BUILD_EXAMPLES=ON ${{ matrix.cmake_extra_args }}
+          cmake -S . -B build/${{ matrix.arch }} -G "Visual Studio 17 2022" -A ${{ matrix.vs_platform }} -DUMBRACOMPILER_BUILD_EXAMPLES=ON ${{ matrix.cmake_extra_args }}
 
       - name: Build ${{ matrix.build_config }} (${{ matrix.arch }})
         if: steps.vulkan_libs.outputs.can_build == 'true'

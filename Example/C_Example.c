@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Evangelion Manuhutu
 
-#include "ShaderCompilerCAPI.h"
+#include "Umbra/ShaderCompilerCAPI.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -15,18 +15,18 @@
     #include <errno.h>
 #endif
 
-static const char* ToLogTypeString(IGNITE_LogType type)
+static const char* ToLogTypeString(UMBRA_LogType type)
 {
     switch (type)
     {
-    case IGNITE_LOG_TYPE_INFO: return "INFO";
-    case IGNITE_LOG_TYPE_WARNING: return "WARNING";
-    case IGNITE_LOG_TYPE_ERROR: return "ERROR";
+    case UMBRA_LOG_TYPE_INFO: return "INFO";
+    case UMBRA_LOG_TYPE_WARNING: return "WARNING";
+    case UMBRA_LOG_TYPE_ERROR: return "ERROR";
     default: return "UNKNOWN";
     }
 }
 
-static void OnCompilerLog(IGNITE_LogType type, const char* message, void* userData)
+static void OnCompilerLog(UMBRA_LogType type, const char* message, void* userData)
 {
     (void)userData;
     printf("[%s] %s\n", ToLogTypeString(type), message);
@@ -143,20 +143,20 @@ static const char* DetectOutputDirectory(const char* inputPath)
     return "Shaders/Compiled/Misc";
 }
 
-static IGNITE_ShaderType DetectShaderTypeFromFilename(const char* filename)
+static UMBRA_ShaderType DetectShaderTypeFromFilename(const char* filename)
 {
     if (strstr(filename, ".vertex.") != NULL)
-        return IGNITE_SHADER_TYPE_VERTEX;
+        return UMBRA_SHADER_TYPE_VERTEX;
     if (strstr(filename, ".pixel.") != NULL)
-        return IGNITE_SHADER_TYPE_PIXEL;
+        return UMBRA_SHADER_TYPE_PIXEL;
     if (strstr(filename, ".geometry.") != NULL)
-        return IGNITE_SHADER_TYPE_GEOMETRY;
+        return UMBRA_SHADER_TYPE_GEOMETRY;
     if (strstr(filename, ".compute.") != NULL)
-        return IGNITE_SHADER_TYPE_COMPUTE;
+        return UMBRA_SHADER_TYPE_COMPUTE;
     if (strstr(filename, ".tessellation.") != NULL)
-        return IGNITE_SHADER_TYPE_TESSELLATION;
+        return UMBRA_SHADER_TYPE_TESSELLATION;
 
-    return IGNITE_SHADER_TYPE_VERTEX;
+    return UMBRA_SHADER_TYPE_VERTEX;
 }
 
 static const char* GetFileNameFromPath(const char* path)
@@ -172,7 +172,7 @@ static const char* GetFileNameFromPath(const char* path)
     return (fileName == NULL) ? path : (fileName + 1);
 }
 
-static int BuildOutputPath(char* outputPath, size_t outputPathSize, const char* outputDirectory, const char* inputPath, IGNITE_ShaderPlatformType platformType)
+static int BuildOutputPath(char* outputPath, size_t outputPathSize, const char* outputDirectory, const char* inputPath, UMBRA_ShaderPlatformType platformType)
 {
     const char* inputFileName = GetFileNameFromPath(inputPath);
     char baseName[256] = {0};
@@ -184,7 +184,7 @@ static int BuildOutputPath(char* outputPath, size_t outputPathSize, const char* 
         *dot = '\0';
     }
 
-    return snprintf(outputPath, outputPathSize, "%s/%s%s", outputDirectory, baseName, IGNITE_ShaderPlatformExtension(platformType)) > 0;
+    return snprintf(outputPath, outputPathSize, "%s/%s%s", outputDirectory, baseName, UMBRA_ShaderPlatformExtension(platformType)) > 0;
 }
 
 static int ReadBinaryFile(const char* filePath, unsigned char** outData, size_t* outSize)
@@ -242,11 +242,11 @@ static int ReadBinaryFile(const char* filePath, unsigned char** outData, size_t*
     return 1;
 }
 
-static void PrintReflectionSummary(const char* label, const IgniteShaderReflectionInfo* reflection)
+static void PrintReflectionSummary(const char* label, const UmbraShaderReflectionInfo* reflection)
 {
     printf("  [%s Reflection] type=%s, UBO=%zu, Samplers=%zu, StorageTex=%zu, StorageBuf=%zu, Inputs=%zu, Outputs=%zu, PushConstants=%zu\n",
         label,
-        IGNITE_GetShaderTypeString(reflection->shaderType),
+        UMBRA_GetShaderTypeString(reflection->shaderType),
         reflection->numUniformBuffers,
         reflection->numSamplers,
         reflection->numStorageTextures,
@@ -256,12 +256,12 @@ static void PrintReflectionSummary(const char* label, const IgniteShaderReflecti
         reflection->numPushConstants);
 }
 
-static int ReflectAndPrint(const char* outputPath, IGNITE_ShaderType shaderType, IGNITE_ShaderPlatformType platformType)
+static int ReflectAndPrint(const char* outputPath, UMBRA_ShaderType shaderType, UMBRA_ShaderPlatformType platformType)
 {
     unsigned char* binaryData = NULL;
     size_t binarySize = 0;
-    IgniteShaderReflectionInfo reflectionInfo;
-    IGNITE_ResultCode result;
+    UmbraShaderReflectionInfo reflectionInfo;
+    UMBRA_ResultCode result;
 
     if (!ReadBinaryFile(outputPath, &binaryData, &binarySize))
     {
@@ -271,7 +271,7 @@ static int ReflectAndPrint(const char* outputPath, IGNITE_ShaderType shaderType,
 
     memset(&reflectionInfo, 0, sizeof(reflectionInfo));
 
-    if (platformType == IGNITE_SHADER_PLATFORM_TYPE_SPIRV)
+    if (platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
     {
         if ((binarySize % 4) != 0)
         {
@@ -279,38 +279,38 @@ static int ReflectAndPrint(const char* outputPath, IGNITE_ShaderType shaderType,
             free(binaryData);
             return 0;
         }
-        result = IgniteCompiler_ReflectSPIRV((const uint32_t*)binaryData, binarySize, shaderType, &reflectionInfo);
-        if (result == IGNITE_RESULT_OK)
+        result = UmbraCompiler_ReflectSPIRV((const uint32_t*)binaryData, binarySize, shaderType, &reflectionInfo);
+        if (result == UMBRA_RESULT_OK)
         {
             PrintReflectionSummary("SPIRV", &reflectionInfo);
         }
     }
     else
     {
-        result = IgniteCompiler_ReflectDXIL(binaryData, binarySize, shaderType, &reflectionInfo);
-        if (result == IGNITE_RESULT_OK)
+        result = UmbraCompiler_ReflectDXIL(binaryData, binarySize, shaderType, &reflectionInfo);
+        if (result == UMBRA_RESULT_OK)
         {
             PrintReflectionSummary("DXIL", &reflectionInfo);
         }
     }
 
-    if (result != IGNITE_RESULT_OK)
+    if (result != UMBRA_RESULT_OK)
     {
         printf("  Reflection failed for %s -> %d\n", outputPath, (int)result);
         free(binaryData);
         return 0;
     }
 
-    IgniteCompiler_FreeReflectionInfo(&reflectionInfo);
+    UmbraCompiler_FreeReflectionInfo(&reflectionInfo);
     free(binaryData);
     return 1;
 }
 
-static int CompileAndReflect(const char* inputPath, const char* outputDirectory, IGNITE_ShaderType shaderType, IGNITE_ShaderPlatformType platformType)
+static int CompileAndReflect(const char* inputPath, const char* outputDirectory, UMBRA_ShaderType shaderType, UMBRA_ShaderPlatformType platformType)
 {
-    IgniteCompileRequest request = {0};
+    UmbraCompileRequest request = {0};
     char outputPath[1024] = {0};
-    IGNITE_ResultCode compileResult;
+    UMBRA_ResultCode compileResult;
 
     request.inputPath = inputPath;
     request.outputDirectory = outputDirectory;
@@ -319,15 +319,15 @@ static int CompileAndReflect(const char* inputPath, const char* outputDirectory,
     request.vulkanVersion = "1.3";
     request.platformType = platformType;
     request.shaderType = shaderType;
-    request.optimizationLevel = IGNITE_OPT_LEVEL_3;
+    request.optimizationLevel = UMBRA_OPT_LEVEL_3;
     request.tRegShift = 0;
     request.sRegShift = 0;
     request.rRegShift = 0;
     request.uRegShift = 0;
 
-    compileResult = IgniteCompiler_Compile(&request);
-    printf("Compile (%s) %s -> %d\n", IGNITE_ShaderPlatformToString(platformType), inputPath, (int)compileResult);
-    if (compileResult != IGNITE_RESULT_OK)
+    compileResult = UmbraCompiler_Compile(&request);
+    printf("Compile (%s) %s -> %d\n", UMBRA_ShaderPlatformToString(platformType), inputPath, (int)compileResult);
+    if (compileResult != UMBRA_RESULT_OK)
     {
         return 0;
     }
@@ -343,9 +343,9 @@ static int CompileAndReflect(const char* inputPath, const char* outputDirectory,
 
 int main(void)
 {
-    IgniteCompiler_SetLogCallback(OnCompilerLog, NULL);
+    UmbraCompiler_SetLogCallback(OnCompilerLog, NULL);
 
-    printf("IgniteCompiler version: %s\n", IgniteCompiler_GetVersion());
+    printf("UmbraCompiler version: %s\n", UmbraCompiler_GetVersion());
 
     const char* shadersDirectory = "Shaders";
     int compiledCount = 0;
@@ -404,15 +404,15 @@ int main(void)
             }
 
             {
-                IGNITE_ShaderType shaderType = DetectShaderTypeFromFilename(findData.cFileName);
-                if (CompileAndReflect(inputPath, outputDirectory, shaderType, IGNITE_SHADER_PLATFORM_TYPE_SPIRV))
+                UMBRA_ShaderType shaderType = DetectShaderTypeFromFilename(findData.cFileName);
+                if (CompileAndReflect(inputPath, outputDirectory, shaderType, UMBRA_SHADER_PLATFORM_TYPE_SPIRV))
                     compiledCount++;
                 else
                     failedCount++;
 
                 if (IsHlslFile(findData.cFileName))
                 {
-                    if (CompileAndReflect(inputPath, outputDirectory, shaderType, IGNITE_SHADER_PLATFORM_TYPE_DXIL))
+                    if (CompileAndReflect(inputPath, outputDirectory, shaderType, UMBRA_SHADER_PLATFORM_TYPE_DXIL))
                         compiledCount++;
                     else
                         failedCount++;
@@ -474,15 +474,15 @@ int main(void)
             }
 
             {
-                IGNITE_ShaderType shaderType = DetectShaderTypeFromFilename(entry->d_name);
-                if (CompileAndReflect(fullPath, outputDirectory, shaderType, IGNITE_SHADER_PLATFORM_TYPE_SPIRV))
+                UMBRA_ShaderType shaderType = DetectShaderTypeFromFilename(entry->d_name);
+                if (CompileAndReflect(fullPath, outputDirectory, shaderType, UMBRA_SHADER_PLATFORM_TYPE_SPIRV))
                     compiledCount++;
                 else
                     failedCount++;
 
                 if (IsHlslFile(entry->d_name))
                 {
-                    if (CompileAndReflect(fullPath, outputDirectory, shaderType, IGNITE_SHADER_PLATFORM_TYPE_DXIL))
+                    if (CompileAndReflect(fullPath, outputDirectory, shaderType, UMBRA_SHADER_PLATFORM_TYPE_DXIL))
                         compiledCount++;
                     else
                         failedCount++;

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Evangelion Manuhutu
 
-#include "ShaderCompiler.h"
+#include "Umbra/ShaderCompiler.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -33,7 +33,7 @@ namespace
 
     std::string DetectOutputDirectory(const std::filesystem::path& inputPath)
     {
-        const std::string normalized = ignite::PathToString(inputPath);
+        const std::string normalized = umbra::PathToString(inputPath);
         if (normalized.find("/HLSL/") != std::string::npos || normalized.find("\\HLSL\\") != std::string::npos)
         {
             return "Shaders/Compiled/HSLSL";
@@ -47,15 +47,15 @@ namespace
         return "Shaders/Compiled/Misc";
     }
 
-    IGNITE_ShaderType DetectShaderTypeFromFilename(const std::string& filename)
+    UMBRA_ShaderType DetectShaderTypeFromFilename(const std::string& filename)
     {
         const std::string lower = ToLower(filename);
-        if (lower.find(".vertex.") != std::string::npos) return IGNITE_SHADER_TYPE_VERTEX;
-        if (lower.find(".pixel.") != std::string::npos) return IGNITE_SHADER_TYPE_PIXEL;
-        if (lower.find(".geometry.") != std::string::npos) return IGNITE_SHADER_TYPE_GEOMETRY;
-        if (lower.find(".compute.") != std::string::npos) return IGNITE_SHADER_TYPE_COMPUTE;
-        if (lower.find(".tessellation.") != std::string::npos) return IGNITE_SHADER_TYPE_TESSELLATION;
-        return IGNITE_SHADER_TYPE_VERTEX;
+        if (lower.find(".vertex.") != std::string::npos) return UMBRA_SHADER_TYPE_VERTEX;
+        if (lower.find(".pixel.") != std::string::npos) return UMBRA_SHADER_TYPE_PIXEL;
+        if (lower.find(".geometry.") != std::string::npos) return UMBRA_SHADER_TYPE_GEOMETRY;
+        if (lower.find(".compute.") != std::string::npos) return UMBRA_SHADER_TYPE_COMPUTE;
+        if (lower.find(".tessellation.") != std::string::npos) return UMBRA_SHADER_TYPE_TESSELLATION;
+        return UMBRA_SHADER_TYPE_VERTEX;
     }
 
     bool ReadBinaryFile(const std::filesystem::path& filePath, std::vector<uint8_t>& outBytes)
@@ -77,10 +77,10 @@ namespace
         return file.read(reinterpret_cast<char*>(outBytes.data()), size).good();
     }
 
-    void PrintReflectionSummary(const char* label, const ignite::ShaderReflectionInfo& reflection)
+    void PrintReflectionSummary(const char* label, const umbra::ShaderReflectionInfo& reflection)
     {
         std::cout
-            << "  [" << label << " Reflection] type=" << IGNITE_GetShaderTypeString(reflection.shaderType)
+            << "  [" << label << " Reflection] type=" << UMBRA_GetShaderTypeString(reflection.shaderType)
             << ", UBO=" << reflection.numUniformBuffers
             << ", Samplers=" << reflection.numSamplers
             << ", StorageTex=" << reflection.numStorageTextures
@@ -91,7 +91,7 @@ namespace
             << std::endl;
     }
 
-    bool ReflectAndPrint(const std::filesystem::path& outputPath, IGNITE_ShaderType shaderType, IGNITE_ShaderPlatformType platformType)
+    bool ReflectAndPrint(const std::filesystem::path& outputPath, UMBRA_ShaderType shaderType, UMBRA_ShaderPlatformType platformType)
     {
         std::vector<uint8_t> bytes;
         if (!ReadBinaryFile(outputPath, bytes))
@@ -102,16 +102,16 @@ namespace
 
         try
         {
-            if (platformType == IGNITE_SHADER_PLATFORM_TYPE_SPIRV)
+            if (platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
             {
-                ignite::ShaderReflectionInfo reflection = ignite::ShaderReflection::SPIRVReflect(shaderType, bytes);
+                umbra::ShaderReflectionInfo reflection = umbra::ShaderReflection::SPIRVReflect(shaderType, bytes);
                 PrintReflectionSummary("SPIRV", reflection);
                 return true;
             }
 
-            if (platformType == IGNITE_SHADER_PLATFORM_TYPE_DXIL)
+            if (platformType == UMBRA_SHADER_PLATFORM_TYPE_DXIL)
             {
-                ignite::ShaderReflectionInfo reflection = ignite::ShaderReflection::DXILReflect(shaderType, bytes);
+                umbra::ShaderReflectionInfo reflection = umbra::ShaderReflection::DXILReflect(shaderType, bytes);
                 PrintReflectionSummary("DXIL", reflection);
                 return true;
             }
@@ -132,11 +132,11 @@ namespace
 
     bool CompileAndReflect(const std::filesystem::path& inputPath,
                            const std::filesystem::path& outputDirectory,
-                           IGNITE_ShaderType shaderType,
-                           IGNITE_ShaderPlatformType platformType)
+                           UMBRA_ShaderType shaderType,
+                           UMBRA_ShaderPlatformType platformType)
     {
-        ignite::CompilerOptions options = {};
-        options.compilerType = IGNITE_SHADER_COMPILER_TYPE_DXC;
+        umbra::CompilerOptions options = {};
+        options.compilerType = UMBRA_SHADER_COMPILER_TYPE_DXC;
         options.platformType = platformType;
         options.filepath = inputPath;
         options.outputFilepath = outputDirectory;
@@ -144,7 +144,7 @@ namespace
         options.shaderDesc.shaderModel = "6_5";
         options.shaderDesc.vulkanVersion = "1.3";
         options.shaderDesc.shaderType = shaderType;
-        options.shaderDesc.optLevel = IGNITE_OPT_LEVEL_3;
+        options.shaderDesc.optLevel = UMBRA_OPT_LEVEL_3;
         options.tRegShift = 0;
         options.sRegShift = 0;
         options.bRegShift = 0;
@@ -156,41 +156,41 @@ namespace
             if (IsHlslFile(inputPath))
             {
 #if defined(_WIN32)
-                std::shared_ptr<ignite::DXCInstance> dxc = ignite::ShaderCompiler::CreateDXCCompiler();
+                std::shared_ptr<umbra::DXCInstance> dxc = umbra::ShaderCompiler::CreateDXCCompiler();
                 if (!dxc)
                 {
-                    std::cout << "Compile (" << IGNITE_ShaderPlatformToString(platformType) << ") "
+                    std::cout << "Compile (" << UMBRA_ShaderPlatformToString(platformType) << ") "
                               << inputPath.generic_string() << " -> failed (CreateDXCCompiler)" << std::endl;
                     return false;
                 }
 
-                output = ignite::ShaderCompiler::CompileDXC(dxc, options);
+                output = umbra::ShaderCompiler::CompileDXC(dxc, options);
 #else
-                std::cout << "Compile (" << IGNITE_ShaderPlatformToString(platformType) << ") "
+                std::cout << "Compile (" << UMBRA_ShaderPlatformToString(platformType) << ") "
                           << inputPath.generic_string() << " -> unsupported platform" << std::endl;
                 return false;
 #endif
             }
             else
             {
-                output = ignite::ShaderCompiler::CompileGLSL(options);
+                output = umbra::ShaderCompiler::CompileGLSL(options);
             }
         }
         catch (const std::exception& ex)
         {
-            std::cout << "Compile (" << IGNITE_ShaderPlatformToString(platformType) << ") "
+            std::cout << "Compile (" << UMBRA_ShaderPlatformToString(platformType) << ") "
                       << inputPath.generic_string() << " -> exception: " << ex.what() << std::endl;
             return false;
         }
         catch (...)
         {
-            std::cout << "Compile (" << IGNITE_ShaderPlatformToString(platformType) << ") "
+            std::cout << "Compile (" << UMBRA_ShaderPlatformToString(platformType) << ") "
                       << inputPath.generic_string() << " -> exception" << std::endl;
             return false;
         }
 
         const bool ok = !output.empty();
-        std::cout << "Compile (" << IGNITE_ShaderPlatformToString(platformType) << ") "
+        std::cout << "Compile (" << UMBRA_ShaderPlatformToString(platformType) << ") "
                   << inputPath.generic_string() << " -> " << (ok ? "OK" : "FAILED") << std::endl;
         if (!ok)
         {
@@ -198,17 +198,17 @@ namespace
         }
 
         const std::filesystem::path outputPath =
-            outputDirectory / inputPath.filename().replace_extension(IGNITE_ShaderPlatformExtension(platformType));
+            outputDirectory / inputPath.filename().replace_extension(UMBRA_ShaderPlatformExtension(platformType));
 
         return ReflectAndPrint(outputPath, shaderType, platformType);
     }
 
-    void OnCompilerLog(IGNITE_LogType type, const char* message, void*)
+    void OnCompilerLog(UMBRA_LogType type, const char* message, void*)
     {
         const char* level = "UNKNOWN";
-        if (type == IGNITE_LOG_TYPE_INFO) level = "INFO";
-        else if (type == IGNITE_LOG_TYPE_WARNING) level = "WARNING";
-        else if (type == IGNITE_LOG_TYPE_ERROR) level = "ERROR";
+        if (type == UMBRA_LOG_TYPE_INFO) level = "INFO";
+        else if (type == UMBRA_LOG_TYPE_WARNING) level = "WARNING";
+        else if (type == UMBRA_LOG_TYPE_ERROR) level = "ERROR";
 
         std::cout << "[" << level << "] " << (message ? message : "") << std::endl;
     }
@@ -216,8 +216,8 @@ namespace
 
 int main()
 {
-    ignite::ShaderCompiler::SetLogCallback(OnCompilerLog, nullptr);
-    std::cout << "IgniteCompiler version: " << ignite::ShaderCompiler::GetVersion() << std::endl;
+    umbra::ShaderCompiler::SetLogCallback(OnCompilerLog, nullptr);
+    std::cout << "UmbraCompiler version: " << umbra::ShaderCompiler::GetVersion() << std::endl;
 
     const std::filesystem::path shaderRoot = "Shaders";
     int compiledCount = 0;
@@ -242,11 +242,11 @@ int main()
             continue;
         }
 
-        const IGNITE_ShaderType shaderType = DetectShaderTypeFromFilename(inputPath.filename().string());
+        const UMBRA_ShaderType shaderType = DetectShaderTypeFromFilename(inputPath.filename().string());
         const std::filesystem::path outputDir = DetectOutputDirectory(inputPath);
         std::filesystem::create_directories(outputDir);
 
-        if (CompileAndReflect(inputPath, outputDir, shaderType, IGNITE_SHADER_PLATFORM_TYPE_SPIRV))
+        if (CompileAndReflect(inputPath, outputDir, shaderType, UMBRA_SHADER_PLATFORM_TYPE_SPIRV))
         {
             compiledCount++;
         }
@@ -257,7 +257,7 @@ int main()
 
         if (IsHlslFile(inputPath))
         {
-            if (CompileAndReflect(inputPath, outputDir, shaderType, IGNITE_SHADER_PLATFORM_TYPE_DXIL))
+            if (CompileAndReflect(inputPath, outputDir, shaderType, UMBRA_SHADER_PLATFORM_TYPE_DXIL))
             {
                 compiledCount++;
             }
@@ -269,7 +269,7 @@ int main()
     }
 
     std::cout << "Compiled: " << compiledCount << ", Failed: " << failedCount << std::endl;
-    ignite::ShaderCompiler::ClearLogCallback();
+    umbra::ShaderCompiler::ClearLogCallback();
 
     return (failedCount == 0 && compiledCount > 0) ? 0 : 1;
 }

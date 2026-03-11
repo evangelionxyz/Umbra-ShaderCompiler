@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Evangelion Manuhutu
 
-#include "ShaderCompiler.h"
+#include "Umbra/ShaderCompiler.h"
 
 #include <algorithm>
 #include <fstream>
@@ -10,7 +10,7 @@
 #include <spirv_cross/spirv_cross_c.h>
 #include <shaderc/shaderc.h>
 
-namespace ignite
+namespace umbra
 {
     const uint32_t SPIRV_SPACES_NUM = 8;
 
@@ -21,7 +21,7 @@ namespace ignite
         void* g_logUserData = nullptr;
 
         // Centralized typed logging dispatch for compiler/reflection diagnostics.
-        void DispatchLog(IGNITE_LogType type, const std::string& message)
+        void DispatchLog(UMBRA_LogType type, const std::string& message)
         {
             if (g_logCallback)
             {
@@ -279,58 +279,58 @@ namespace ignite
                     message += ignored[i];
                 }
                 message += ".";
-                DispatchLog(IGNITE_LOG_TYPE_WARNING, message);
+                DispatchLog(UMBRA_LOG_TYPE_WARNING, message);
             }
         }
 
 #ifdef _WIN32
     // Maps D3D reflection component type to project vertex element format.
-        IGNITE_VertexElementFormat IGNITE_Map3DComponent(D3D_REGISTER_COMPONENT_TYPE componentType, uint32_t elementCount)
+        UMBRA_VertexElementFormat UMBRA_Map3DComponent(D3D_REGISTER_COMPONENT_TYPE componentType, uint32_t elementCount)
         {
             switch (componentType)
             {
                 case D3D_REGISTER_COMPONENT_FLOAT32:
                 switch (elementCount)
                 {
-                    case 1: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT;
-                    case 2: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT2;
-                    case 3: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT3;
-                    case 4: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT4;
+                    case 1: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT;
+                    case 2: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT2;
+                    case 3: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT3;
+                    case 4: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT4;
                     default: break;
                 }
                 break;
                 case D3D_REGISTER_COMPONENT_SINT32:
                 switch (elementCount)
                 {
-                    case 1: return IGNITE_VERTEX_ELEMENT_FORMAT_INT;
-                    case 2: return IGNITE_VERTEX_ELEMENT_FORMAT_INT2;
-                    case 3: return IGNITE_VERTEX_ELEMENT_FORMAT_INT3;
-                    case 4: return IGNITE_VERTEX_ELEMENT_FORMAT_INT4;
+                    case 1: return UMBRA_VERTEX_ELEMENT_FORMAT_INT;
+                    case 2: return UMBRA_VERTEX_ELEMENT_FORMAT_INT2;
+                    case 3: return UMBRA_VERTEX_ELEMENT_FORMAT_INT3;
+                    case 4: return UMBRA_VERTEX_ELEMENT_FORMAT_INT4;
                     default: break;
                 }
                 break;
                 case D3D_REGISTER_COMPONENT_UINT32:
                 switch (elementCount)
                 {
-                    case 1: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT;
-                    case 2: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT2;
-                    case 3: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT3;
-                    case 4: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT4;
+                    case 1: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT;
+                    case 2: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT2;
+                    case 3: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT3;
+                    case 4: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT4;
                     default: break;
                 }
                 break;
             }
             
-            return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+            return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
         }
 #endif
 
     // Maps SPIRV-Cross types to project vertex element format.
-        IGNITE_VertexElementFormat IGNITE_MapSpvcType(spvc_type typeHandle)
+        UMBRA_VertexElementFormat UMBRA_MapSpvcType(spvc_type typeHandle)
         {
             if (!typeHandle)
             {
-                return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+                return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
             }
 
             const spvc_basetype baseType = spvc_type_get_basetype(typeHandle);
@@ -339,18 +339,18 @@ namespace ignite
 
             if (columns != 1)
             {
-                return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+                return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
             }
 
             if (baseType == SPVC_BASETYPE_FP32)
             {
                 switch (vecSize)
                 {
-                case 1: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT;
-                case 2: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT2;
-                case 3: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT3;
-                case 4: return IGNITE_VERTEX_ELEMENT_FORMAT_FLOAT4;
-                default: return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+                case 1: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT;
+                case 2: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT2;
+                case 3: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT3;
+                case 4: return UMBRA_VERTEX_ELEMENT_FORMAT_FLOAT4;
+                default: return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
                 }
             }
 
@@ -358,11 +358,11 @@ namespace ignite
             {
                 switch (vecSize)
                 {
-                case 1: return IGNITE_VERTEX_ELEMENT_FORMAT_INT;
-                case 2: return IGNITE_VERTEX_ELEMENT_FORMAT_INT2;
-                case 3: return IGNITE_VERTEX_ELEMENT_FORMAT_INT3;
-                case 4: return IGNITE_VERTEX_ELEMENT_FORMAT_INT4;
-                default: return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+                case 1: return UMBRA_VERTEX_ELEMENT_FORMAT_INT;
+                case 2: return UMBRA_VERTEX_ELEMENT_FORMAT_INT2;
+                case 3: return UMBRA_VERTEX_ELEMENT_FORMAT_INT3;
+                case 4: return UMBRA_VERTEX_ELEMENT_FORMAT_INT4;
+                default: return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
                 }
             }
 
@@ -370,47 +370,47 @@ namespace ignite
             {
                 switch (vecSize)
                 {
-                case 1: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT;
-                case 2: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT2;
-                case 3: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT3;
-                case 4: return IGNITE_VERTEX_ELEMENT_FORMAT_UINT4;
-                default: return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+                case 1: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT;
+                case 2: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT2;
+                case 3: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT3;
+                case 4: return UMBRA_VERTEX_ELEMENT_FORMAT_UINT4;
+                default: return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
                 }
             }
 
-            return IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+            return UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
         }
 
         // Maps project shader type to shaderc stage kind.
-        shaderc_shader_kind IGNITE_ShaderToShaderCKind(IGNITE_ShaderType type)
+        shaderc_shader_kind UMBRA_ShaderToShaderCKind(UMBRA_ShaderType type)
         {
             switch (type)
             {
-            case IGNITE_SHADER_TYPE_VERTEX: return shaderc_glsl_vertex_shader;
-            case IGNITE_SHADER_TYPE_PIXEL: return shaderc_glsl_fragment_shader;
-            case IGNITE_SHADER_TYPE_GEOMETRY: return shaderc_glsl_geometry_shader;
-            case IGNITE_SHADER_TYPE_COMPUTE: return shaderc_glsl_compute_shader;
-            case IGNITE_SHADER_TYPE_TESSELLATION: return shaderc_glsl_infer_from_source;
+            case UMBRA_SHADER_TYPE_VERTEX: return shaderc_glsl_vertex_shader;
+            case UMBRA_SHADER_TYPE_PIXEL: return shaderc_glsl_fragment_shader;
+            case UMBRA_SHADER_TYPE_GEOMETRY: return shaderc_glsl_geometry_shader;
+            case UMBRA_SHADER_TYPE_COMPUTE: return shaderc_glsl_compute_shader;
+            case UMBRA_SHADER_TYPE_TESSELLATION: return shaderc_glsl_infer_from_source;
             default: return shaderc_glsl_infer_from_source;
             }
         }
 
         // Maps project optimization enum to shaderc optimization level.
-        shaderc_optimization_level IGNITE_ShaderToShaderCOptLevel(IGNITE_OptimizationLevel level)
+        shaderc_optimization_level UMBRA_ShaderToShaderCOptLevel(UMBRA_OptimizationLevel level)
         {
             switch (level)
             {
-            case IGNITE_OPT_LEVEL_0: return shaderc_optimization_level_zero;
-            case IGNITE_OPT_LEVEL_1:
-            case IGNITE_OPT_LEVEL_2:
-            case IGNITE_OPT_LEVEL_3:
+            case UMBRA_OPT_LEVEL_0: return shaderc_optimization_level_zero;
+            case UMBRA_OPT_LEVEL_1:
+            case UMBRA_OPT_LEVEL_2:
+            case UMBRA_OPT_LEVEL_3:
             default:
                 return shaderc_optimization_level_performance;
             }
         }
 
         // Maps Vulkan version string to shaderc environment target.
-        shaderc_env_version IGNITE_ShaderToVulkanEnvVersion(const char *version)
+        shaderc_env_version UMBRA_ShaderToVulkanEnvVersion(const char *version)
         {
             if (strcmp(version, "1.0") == 0) return shaderc_env_version_vulkan_1_0;
             if (strcmp(version, "1.1") == 0) return shaderc_env_version_vulkan_1_1;
@@ -438,7 +438,7 @@ namespace ignite
         stream = fopen(file, textMode ? "w" : "wb");
         if (!stream)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, std::string("Cannot open file for writing: ") + file);
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, std::string("Cannot open file for writing: ") + file);
         }
     }
 
@@ -512,7 +512,7 @@ namespace ignite
         HRESULT hr = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&instance->compiler));
         if (FAILED(hr))
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "Failed to create IDxcCompiler3 instance. HRESULT=" + std::to_string((long long)hr)
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "Failed to create IDxcCompiler3 instance. HRESULT=" + std::to_string((long long)hr)
                 + " " + std::system_category().message((int)hr));
             return nullptr;
         }
@@ -520,12 +520,12 @@ namespace ignite
         hr = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&instance->utils));
         if (FAILED(hr))
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "Failed to create IDxcUtils instance. HRESULT=" + std::to_string((long long)hr)
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "Failed to create IDxcUtils instance. HRESULT=" + std::to_string((long long)hr)
                 + " " + std::system_category().message((int)hr));
             return nullptr;
         }
 
-        DispatchLog(IGNITE_LOG_TYPE_INFO, "DXC compiler initialized.");
+        DispatchLog(UMBRA_LOG_TYPE_INFO, "DXC compiler initialized.");
 
         return instance;
     }
@@ -581,13 +581,13 @@ namespace ignite
             args.reserve(16 + (options.defines.size()
                 + options.defines.size()
                 + options.includeDirectories.size()) * 2
-                + (options.platformType == IGNITE_SHADER_PLATFORM_TYPE_SPIRV ? regShifts.size()
+                + (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV ? regShifts.size()
                 + options.spirvExtensions.size() : 0));
 
             args.push_back(wsourceFile); // Source file
             args.push_back(L"-T"); // Profile
 
-            std::string shaderProfile = std::string(IGNITE_ShaderTypeToProfile(options.shaderDesc.shaderType));
+            std::string shaderProfile = std::string(UMBRA_ShaderTypeToProfile(options.shaderDesc.shaderType));
             args.push_back(AnsiToWide(shaderProfile + "_" + options.shaderDesc.shaderModel));
             args.push_back(L"-E"); // Entry Point
             args.push_back(AnsiToWide(options.shaderDesc.entryPoint));
@@ -633,7 +633,7 @@ namespace ignite
                 args.push_back(L"-Qembed_debug");
             }
 
-            if (options.platformType == IGNITE_SHADER_PLATFORM_TYPE_SPIRV)
+            if (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
             {
                 args.push_back(L"-spirv");
                 args.push_back(std::wstring(L"-fspv-target-env=vulkan") + AnsiToWide(options.shaderDesc.vulkanVersion));
@@ -677,7 +677,7 @@ namespace ignite
                 }
 
                 const std::wstring wcmd = cmd.str();
-                DispatchLog(IGNITE_LOG_TYPE_WARNING, WStringToUtf8(wcmd));
+                DispatchLog(UMBRA_LOG_TYPE_WARNING, WStringToUtf8(wcmd));
             }
 
             // Now that args are finalized, get their C-string pointer into vector
@@ -722,7 +722,15 @@ namespace ignite
                     errorText += " ";
                     errorText += std::string((const char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize());
                 }
-                DispatchLog(IGNITE_LOG_TYPE_ERROR, errorText);
+                DispatchLog(UMBRA_LOG_TYPE_ERROR, errorText);
+
+                if (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV
+                    && errorText.find("SPIR-V CodeGen not available") != std::string::npos)
+                {
+                    DispatchLog(UMBRA_LOG_TYPE_ERROR,
+                        "DXC runtime does not include SPIR-V codegen. Ensure Vulkan SDK dxcompiler.dll/dxil.dll are loaded (copy next to the executable or adjust PATH)."
+                    );
+                }
             }
 
             // Dump PDB
@@ -745,7 +753,7 @@ namespace ignite
             // Dump output
             if (isSucceeded)
             {
-                std::string outputExtension = IGNITE_ShaderPlatformExtension(options.platformType);
+                std::string outputExtension = UMBRA_ShaderPlatformExtension(options.platformType);
                 std::filesystem::path parentPath = options.filepath.parent_path();
                 if (!options.outputFilepath.empty())
                 {
@@ -760,7 +768,7 @@ namespace ignite
                 std::memcpy(resultCode.data(), bufferPtr, bufferSize);
 
                 DumpShader(options, resultCode, filename.generic_string());
-                DispatchLog(IGNITE_LOG_TYPE_INFO, "Compiled shader: " + filename.generic_string());
+                DispatchLog(UMBRA_LOG_TYPE_INFO, "Compiled shader: " + filename.generic_string());
             }
         }
 
@@ -771,16 +779,16 @@ namespace ignite
     {
         std::vector<uint8_t> resultCode;
 
-        if (options.platformType != IGNITE_SHADER_PLATFORM_TYPE_SPIRV)
+        if (options.platformType != UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
         {
-            DispatchLog(IGNITE_LOG_TYPE_WARNING, "GLSL compilation currently supports SPIRV output only.");
+            DispatchLog(UMBRA_LOG_TYPE_WARNING, "GLSL compilation currently supports SPIRV output only.");
             return resultCode;
         }
 
         std::string source = ReadTextFile(options.filepath);
         if (source.empty())
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "Failed to read GLSL file: " + options.filepath.generic_string());
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "Failed to read GLSL file: " + options.filepath.generic_string());
             return resultCode;
         }
 
@@ -793,7 +801,7 @@ namespace ignite
 
         if (!shadercContext.compiler || !shadercContext.compileOptions)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "Failed to initialize shaderc compiler/options.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "Failed to initialize shaderc compiler/options.");
             return resultCode;
         }
 
@@ -807,8 +815,8 @@ namespace ignite
             &includeContext);
 
         shaderc_compile_options_set_source_language(shadercContext.compileOptions, shaderc_source_language_glsl);
-        shaderc_compile_options_set_target_env(shadercContext.compileOptions, shaderc_target_env_vulkan, IGNITE_ShaderToVulkanEnvVersion(options.shaderDesc.vulkanVersion.c_str()));
-        shaderc_compile_options_set_optimization_level(shadercContext.compileOptions, IGNITE_ShaderToShaderCOptLevel(options.shaderDesc.optLevel));
+        shaderc_compile_options_set_target_env(shadercContext.compileOptions, shaderc_target_env_vulkan, UMBRA_ShaderToVulkanEnvVersion(options.shaderDesc.vulkanVersion.c_str()));
+        shaderc_compile_options_set_optimization_level(shadercContext.compileOptions, UMBRA_ShaderToShaderCOptLevel(options.shaderDesc.optLevel));
 
         if (options.warningsAreErrors)
         {
@@ -832,17 +840,17 @@ namespace ignite
 
         if (options.verbose)
         {
-            DispatchLog(IGNITE_LOG_TYPE_INFO, "Compiling GLSL: " + options.filepath.generic_string());
+            DispatchLog(UMBRA_LOG_TYPE_INFO, "Compiling GLSL: " + options.filepath.generic_string());
         }
 
         std::string outFilenameStr = options.filepath.generic_string();
         shadercContext.compilationResult = shaderc_compile_into_spv(shadercContext.compiler, source.c_str(), source.size(),
-            IGNITE_ShaderToShaderCKind(options.shaderDesc.shaderType), outFilenameStr.c_str(),
+            UMBRA_ShaderToShaderCKind(options.shaderDesc.shaderType), outFilenameStr.c_str(),
             options.shaderDesc.entryPoint.c_str(), shadercContext.compileOptions);
 
         if (!shadercContext.compilationResult)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "GLSL compilation failed: shaderc returned no result.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "GLSL compilation failed: shaderc returned no result.");
             return resultCode;
         }
 
@@ -853,14 +861,14 @@ namespace ignite
             if (compilationStatus != shaderc_compilation_status_success)
             {
                 std::string errorMessage = shaderc_result_get_error_message(shadercContext.compilationResult);
-                DispatchLog(IGNITE_LOG_TYPE_ERROR, "GLSL compilation failed: " + errorMessage);
+                DispatchLog(UMBRA_LOG_TYPE_ERROR, "GLSL compilation failed: " + errorMessage);
                 return resultCode;
             }
 
             if (numWarnings > 0)
             {
                 std::string errorMessage = shaderc_result_get_error_message(shadercContext.compilationResult);
-                DispatchLog(IGNITE_LOG_TYPE_WARNING, errorMessage);
+                DispatchLog(UMBRA_LOG_TYPE_WARNING, errorMessage);
             }
         }
         
@@ -869,7 +877,7 @@ namespace ignite
         resultCode.resize(byteCount);
         std::memcpy(resultCode.data(), shaderc_result_get_bytes(shadercContext.compilationResult), resultCode.size());
 
-        std::string outputExtension = IGNITE_ShaderPlatformExtension(options.platformType);
+        std::string outputExtension = UMBRA_ShaderPlatformExtension(options.platformType);
         std::filesystem::path parentPath = options.filepath.parent_path();
         if (!options.outputFilepath.empty())
         {
@@ -878,7 +886,7 @@ namespace ignite
 
         std::filesystem::path filename = parentPath / options.filepath.filename().replace_extension(outputExtension);
         DumpShader(options, resultCode, filename.generic_string());
-        DispatchLog(IGNITE_LOG_TYPE_INFO, "Compiled GLSL shader: " + filename.generic_string());
+        DispatchLog(UMBRA_LOG_TYPE_INFO, "Compiled GLSL shader: " + filename.generic_string());
 
         return resultCode;
     }
@@ -890,7 +898,7 @@ namespace ignite
 
     void ShaderCompiler::DumpShader(const CompilerOptions& options, std::vector<uint8_t>& shaderCode, const std::string& outputPath)
     {
-        std::string shaderPlatformStr = IGNITE_ShaderPlatformToString(options.platformType);
+        std::string shaderPlatformStr = UMBRA_ShaderPlatformToString(options.platformType);
         if (options.binary || options.binaryBlob || (options.headerBlob))
         {
             DataOutputContext context(outputPath.c_str(), false);
@@ -900,7 +908,7 @@ namespace ignite
             }
 
             context.WriteDataAsBinary(shaderCode.data(), shaderCode.size());
-            DispatchLog(IGNITE_LOG_TYPE_INFO, "Writing binary " +shaderPlatformStr+ ": " + outputPath);
+            DispatchLog(UMBRA_LOG_TYPE_INFO, "Writing binary " +shaderPlatformStr+ ": " + outputPath);
         }
 
         if (options.header || options.headerBlob)
@@ -917,18 +925,18 @@ namespace ignite
             context.WriteDataAsText(shaderCode.data(), shaderCode.size());
             context.WriteTextEpilog();
 
-            DispatchLog(IGNITE_LOG_TYPE_INFO, "Writing header [" + shaderPlatformStr + "]: " + headerOutput);
+            DispatchLog(UMBRA_LOG_TYPE_INFO, "Writing header [" + shaderPlatformStr + "]: " + headerOutput);
         }
     }
 
-    ShaderReflectionInfo ShaderReflection::SPIRVReflect(IGNITE_ShaderType type, const std::vector<uint8_t>& shaderCode)
+    ShaderReflectionInfo ShaderReflection::SPIRVReflect(UMBRA_ShaderType type, const std::vector<uint8_t>& shaderCode)
     {
         ShaderReflectionInfo info = {};
         info.shaderType = type;
 
         if (shaderCode.size() % sizeof(uint32_t) != 0)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "SPIRV reflection failed: shader blob size is not aligned to 4 bytes.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: shader blob size is not aligned to 4 bytes.");
             return info;
         }
 
@@ -939,7 +947,7 @@ namespace ignite
 
         if (spvc_context_create(&context) != SPVC_SUCCESS)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create SPIRV-Cross context.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create SPIRV-Cross context.");
             return info;
         }
 
@@ -948,21 +956,21 @@ namespace ignite
 
         if (spvc_context_parse_spirv(context, words, wordCount, &ir) != SPVC_SUCCESS)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "SPIRV reflection failed: could not parse SPIRV blob.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not parse SPIRV blob.");
             spvc_context_destroy(context);
             return info;
         }
 
         if (spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_COPY, &compiler) != SPVC_SUCCESS)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create SPIRV-Cross compiler.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create SPIRV-Cross compiler.");
             spvc_context_destroy(context);
             return info;
         }
 
         if (spvc_compiler_create_shader_resources(compiler, &resources) != SPVC_SUCCESS)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create shader resources.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create shader resources.");
             spvc_context_destroy(context);
             return info;
         }
@@ -982,6 +990,7 @@ namespace ignite
                 ShaderResourceInfo item = {};
                 item.name = list[i].name ? list[i].name : "";
                 item.id = list[i].id;
+                item.location = spvc_compiler_get_decoration(compiler, list[i].id, SpvDecorationLocation);
                 item.set = spvc_compiler_get_decoration(compiler, list[i].id, SpvDecorationDescriptorSet);
                 item.binding = spvc_compiler_get_decoration(compiler, list[i].id, SpvDecorationBinding);
                 item.count = 1;
@@ -1049,7 +1058,7 @@ namespace ignite
                 {
                     io.vecSize = spvc_type_get_vector_size(typeHandle);
                     io.columns = spvc_type_get_columns(typeHandle);
-                    io.format = IGNITE_MapSpvcType(typeHandle);
+                    io.format = UMBRA_MapSpvcType(typeHandle);
                 }
 
                 outIO.push_back(std::move(io));
@@ -1066,14 +1075,14 @@ namespace ignite
         info.numStageInputs = info.stageInputs.size();
         info.numStageOutputs = info.stageOutputs.size();
 
-        if (type == IGNITE_SHADER_TYPE_VERTEX)
+        if (type == UMBRA_SHADER_TYPE_VERTEX)
         {
             uint32_t offset = 0;
             for (const ShaderStageIOInfo& input : info.stageInputs)
             {
-                if (input.format == IGNITE_VERTEX_ELEMENT_FORMAT_INVALID)
+                if (input.format == UMBRA_VERTEX_ELEMENT_FORMAT_INVALID)
                 {
-                    DispatchLog(IGNITE_LOG_TYPE_WARNING, "SPIRV reflection: unsupported vertex attribute format at location " + std::to_string(input.location));
+                    DispatchLog(UMBRA_LOG_TYPE_WARNING, "SPIRV reflection: unsupported vertex attribute format at location " + std::to_string(input.location));
                     continue;
                 }
 
@@ -1098,7 +1107,7 @@ namespace ignite
             }
         }
 
-        DispatchLog(IGNITE_LOG_TYPE_INFO, "SPIRV reflection complete: " + std::string(IGNITE_GetShaderTypeString(type))
+        DispatchLog(UMBRA_LOG_TYPE_INFO, "SPIRV reflection complete: " + std::string(UMBRA_GetShaderTypeString(type))
             + " | UBO=" + std::to_string(info.numUniformBuffers)
             + " Sampled=" + std::to_string(info.numSamplers)
             + " StorageTex=" + std::to_string(info.numStorageTextures)
@@ -1110,7 +1119,7 @@ namespace ignite
         return info;
     }
 
-    ShaderReflectionInfo ShaderReflection::DXILReflect(IGNITE_ShaderType type, const std::vector<uint8_t>& shaderCode)
+    ShaderReflectionInfo ShaderReflection::DXILReflect(UMBRA_ShaderType type, const std::vector<uint8_t>& shaderCode)
     {
         ShaderReflectionInfo info = {};
         info.shaderType = type;
@@ -1118,7 +1127,7 @@ namespace ignite
 #ifdef _WIN32
         if (shaderCode.empty() || shaderCode.size() < 4)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "DXIL reflection failed: shader blob is empty or too small.");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXIL reflection failed: shader blob is empty or too small.");
             return info;
         }
 
@@ -1161,7 +1170,7 @@ namespace ignite
 
         if (FAILED(result) || !reflection)
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "DXIL reflection failed. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXIL reflection failed. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
             return info;
         }
 
@@ -1169,11 +1178,11 @@ namespace ignite
         result = reflection->GetDesc(&shaderDesc);
         if (FAILED(result))
         {
-            DispatchLog(IGNITE_LOG_TYPE_ERROR, "DXIL reflection failed while reading shader description. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXIL reflection failed while reading shader description. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
             return info;
         }
 
-        DispatchLog(IGNITE_LOG_TYPE_INFO, std::string("DXIL reflection: ") + IGNITE_GetShaderTypeString(type));
+        DispatchLog(UMBRA_LOG_TYPE_INFO, std::string("DXIL reflection: ") + UMBRA_GetShaderTypeString(type));
 
         info.uniformBuffers.reserve(shaderDesc.ConstantBuffers);
         for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
@@ -1264,7 +1273,7 @@ namespace ignite
         };
 
         std::vector<InputAttribute> inputs;
-        if (type == IGNITE_SHADER_TYPE_VERTEX)
+        if (type == UMBRA_SHADER_TYPE_VERTEX)
         {
             inputs.reserve(shaderDesc.InputParameters);
         }
@@ -1295,10 +1304,10 @@ namespace ignite
                 mask >>= 1;
             }
             stageInput.vecSize = (elementCount > 0) ? elementCount : 1u;
-            stageInput.format = IGNITE_Map3DComponent(paramDesc.ComponentType, stageInput.vecSize);
+            stageInput.format = UMBRA_Map3DComponent(paramDesc.ComponentType, stageInput.vecSize);
             info.stageInputs.push_back(stageInput);
 
-            if (type == IGNITE_SHADER_TYPE_VERTEX)
+            if (type == UMBRA_SHADER_TYPE_VERTEX)
             {
                 inputs.push_back({ paramDesc.Register, paramDesc.SemanticName ? paramDesc.SemanticName : "", paramDesc.SemanticIndex, paramDesc.Mask, paramDesc.ComponentType });
             }
@@ -1330,7 +1339,7 @@ namespace ignite
                 mask >>= 1;
             }
             stageOutput.vecSize = (elementCount > 0) ? elementCount : 1u;
-            stageOutput.format = IGNITE_Map3DComponent(paramDesc.ComponentType, stageOutput.vecSize);
+            stageOutput.format = UMBRA_Map3DComponent(paramDesc.ComponentType, stageOutput.vecSize);
             info.stageOutputs.push_back(stageOutput);
         }
 
@@ -1344,7 +1353,7 @@ namespace ignite
         info.numStageInputs = info.stageInputs.size();
         info.numStageOutputs = info.stageOutputs.size();
 
-        if (type == IGNITE_SHADER_TYPE_VERTEX && !inputs.empty())
+        if (type == UMBRA_SHADER_TYPE_VERTEX && !inputs.empty())
         {
             std::sort(inputs.begin(), inputs.end(), [](const InputAttribute& a, const InputAttribute& b) {
                 return a.registerIndex < b.registerIndex;
@@ -1365,10 +1374,10 @@ namespace ignite
             for (const auto& input : inputs)
             {
                 const uint32_t elementCount = countMask(input.mask);
-                const IGNITE_VertexElementFormat elementFormat = IGNITE_Map3DComponent(input.componentType, elementCount);
-                if (elementFormat == IGNITE_VERTEX_ELEMENT_FORMAT_INVALID)
+                const UMBRA_VertexElementFormat elementFormat = UMBRA_Map3DComponent(input.componentType, elementCount);
+                if (elementFormat == UMBRA_VERTEX_ELEMENT_FORMAT_INVALID)
                 {
-                    DispatchLog(IGNITE_LOG_TYPE_WARNING, "DXIL reflection: unsupported vertex input format for semantic " + input.semanticName);
+                    DispatchLog(UMBRA_LOG_TYPE_WARNING, "DXIL reflection: unsupported vertex input format for semantic " + input.semanticName);
                     continue;
                 }
 
@@ -1397,14 +1406,14 @@ namespace ignite
             }
         }
 
-        DispatchLog(IGNITE_LOG_TYPE_INFO, "DXIL reflection complete: " + std::string(IGNITE_GetShaderTypeString(type))
+        DispatchLog(UMBRA_LOG_TYPE_INFO, "DXIL reflection complete: " + std::string(UMBRA_GetShaderTypeString(type))
             + " | UBO=" + std::to_string(info.numUniformBuffers)
             + " Sampled=" + std::to_string(info.numSamplers)
             + " StorageBuf=" + std::to_string(info.numStorageBuffers)
             + " Inputs=" + std::to_string(info.numStageInputs)
             + " Outputs=" + std::to_string(info.numStageOutputs));
 #else
-        DispatchLog(IGNITE_LOG_TYPE_WARNING, "DXIL reflection is only available on Windows platform");
+        DispatchLog(UMBRA_LOG_TYPE_WARNING, "DXIL reflection is only available on Windows platform");
 #endif
 
         return info;

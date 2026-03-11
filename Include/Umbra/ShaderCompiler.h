@@ -28,27 +28,27 @@
 #include "ShaderBase.h"
 
 #if defined(_WIN32)
-    #if defined(IGNITECOMPILER_BUILD_SHARED)
-        #define IGNITECOMPILER_API __declspec(dllexport)
+    #if defined(UMBRACOMPILER_BUILD_SHARED)
+        #define UMBRACOMPILER_API __declspec(dllexport)
     #else
-        #define IGNITECOMPILER_API __declspec(dllimport)
+        #define UMBRACOMPILER_API __declspec(dllimport)
     #endif
 #elif defined(__GNUC__) || defined(__clang__)
-    #define IGNITECOMPILER_API __attribute__((visibility("default")))
+    #define UMBRACOMPILER_API __attribute__((visibility("default")))
 #else
-    #define IGNITECOMPILER_API
+    #define UMBRACOMPILER_API
 #endif
 
-namespace ignite
+namespace umbra
 {
     // Compiler log callback used by C++ and bridged by the C API.
-    using LogCallback = void(*)(IGNITE_LogType type, const char* message, void* userData);
+    using LogCallback = void(*)(UMBRA_LogType type, const char* message, void* userData);
     
     // Vertex attribute metadata extracted during reflection.
     struct VertexAttribute
     {
         std::string name;
-        IGNITE_VertexElementFormat format = IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+        UMBRA_VertexElementFormat format = UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
         uint32_t bufferIndex = 0;
         uint32_t offset = 0;
         uint32_t elementStride = 0;
@@ -59,6 +59,7 @@ namespace ignite
     {
         std::string name;
         uint32_t id = 0;
+        uint32_t location = 0;
         uint32_t set = 0;
         uint32_t binding = 0;
         uint32_t count = 1;
@@ -70,7 +71,7 @@ namespace ignite
         std::string name;
         uint32_t id = 0;
         uint32_t location = 0;
-        IGNITE_VertexElementFormat format = IGNITE_VERTEX_ELEMENT_FORMAT_INVALID;
+        UMBRA_VertexElementFormat format = UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
         uint32_t vecSize = 0;
         uint32_t columns = 0;
     };
@@ -85,7 +86,7 @@ namespace ignite
     // Unified reflection model returned by both SPIR-V and DXIL reflection paths.
     struct ShaderReflectionInfo
     {
-        IGNITE_ShaderType shaderType = IGNITE_SHADER_TYPE_VERTEX;
+        UMBRA_ShaderType shaderType = UMBRA_SHADER_TYPE_VERTEX;
 
         size_t numUniformBuffers = 0;
         size_t numSamplers = 0;
@@ -215,15 +216,15 @@ namespace ignite
         std::string vulkanVersion = "1.3";
         std::string vulkanMemoryLayout;
         std::string combinedDefines;
-        IGNITE_ShaderType shaderType;
-        IGNITE_OptimizationLevel optLevel = IGNITE_OPT_LEVEL_3;
+        UMBRA_ShaderType shaderType;
+        UMBRA_OptimizationLevel optLevel = UMBRA_OPT_LEVEL_3;
     };
 
     // Full compiler configuration for a single compile operation.
     struct CompilerOptions
     {
-        IGNITE_ShaderCompilerType compilerType;
-        IGNITE_ShaderPlatformType platformType;
+        UMBRA_ShaderCompilerType compilerType;
+        UMBRA_ShaderPlatformType platformType;
         std::filesystem::path filepath;
         std::filesystem::path outputFilepath;
 
@@ -286,7 +287,7 @@ namespace ignite
         uint32_t m_lineLength = 129;
     };
 
-    class IGNITECOMPILER_API ShaderCompiler
+    class UMBRACOMPILER_API ShaderCompiler
     {
     public:
         // Registers global logging callback for compiler operations.
@@ -312,14 +313,14 @@ namespace ignite
     };
 
     // Reflection API for inspecting compiled shader bytecode.
-    class IGNITECOMPILER_API ShaderReflection
+    class UMBRACOMPILER_API ShaderReflection
     {
     public:
         // Reflects SPIR-V binary into ShaderReflectionInfo.
-        static ShaderReflectionInfo SPIRVReflect(IGNITE_ShaderType type, const std::vector<uint8_t> &shaderCode);
+        static ShaderReflectionInfo SPIRVReflect(UMBRA_ShaderType type, const std::vector<uint8_t> &shaderCode);
 
         // Reflects DXIL binary into ShaderReflectionInfo.
-        static ShaderReflectionInfo DXILReflect(IGNITE_ShaderType type, const std::vector<uint8_t>& shaderCode);
+        static ShaderReflectionInfo DXILReflect(UMBRA_ShaderType type, const std::vector<uint8_t>& shaderCode);
     };
 }
 

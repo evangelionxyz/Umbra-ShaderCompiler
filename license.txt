@@ -1,4 +1,4 @@
-Ignite ShaderCompiler
+Umbra Shader Compiler
 
 Copyright (C) 2026 Evangelion Manuhutu
 

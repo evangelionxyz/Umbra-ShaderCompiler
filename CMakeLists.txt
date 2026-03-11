@@ -2,23 +2,23 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(IgniteCompiler)
+project(Umbra)
 set(CMAKE_CXX_STANDARD 20)
 
 file(GLOB_RECURSE SRC_FILES 
-    Source/*.h
-    Source/*.cpp
+    Include/Umbra/*.h
+    Source/Umbra/*.cpp
 )
 
-add_library(IgniteCompiler SHARED ${SRC_FILES})
+add_library(UmbraCompiler SHARED ${SRC_FILES})
 
-target_include_directories(IgniteCompiler
+target_include_directories(UmbraCompiler
     PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Source>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/Include>
         $<INSTALL_INTERFACE:include>
 )
 
-target_compile_definitions(IgniteCompiler PRIVATE IGNITECOMPILER_BUILD_SHARED)
+target_compile_definitions(UmbraCompiler PRIVATE UMBRACOMPILER_BUILD_SHARED)
 
 # defines
 if (WIN32)
@@ -42,8 +42,8 @@ elseif (UNIX AND NOT APPLE)
     endif()
 endif()
 
-install(TARGETS IgniteCompiler
-    EXPORT IgniteCompilerTargets
+install(TARGETS UmbraCompiler
+    EXPORT UmbraCompilerTargets
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
@@ -54,14 +54,14 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/
     FILES_MATCHING PATTERN "*.h"
 )
 
-install(EXPORT IgniteCompilerTargets
-    FILE IgniteCompilerTargets.cmake
-    NAMESPACE Ignite::
-    DESTINATION lib/cmake/IgniteCompiler
+install(EXPORT UmbraCompilerTargets
+    FILE UmbraCompiler.cmake
+    NAMESPACE Umbra::
+    DESTINATION lib/cmake/UmbraCompiler
 )
 
-option(IGNITECOMPILER_BUILD_EXAMPLES "Build IgniteCompiler examples" ON)
-if (IGNITECOMPILER_BUILD_EXAMPLES)
+option(UMBRACOMPILER_BUILD_EXAMPLES "Build UmbraCompiler examples" ON)
+if (UMBRACOMPILER_BUILD_EXAMPLES)
     include(${CMAKE_CURRENT_SOURCE_DIR}/Example/c_example.cmake)
     include(${CMAKE_CURRENT_SOURCE_DIR}/Example/cpp_example.cmake)
 endif()
@@ -97,7 +97,7 @@ if (WIN32)
         )
     endif()
 
-    function(ignite_resolve_vulkan_lib outVar baseName)
+    function(umbra_resolve_vulkan_lib outVar baseName)
         find_library(_${baseName}_RELEASE
             NAMES ${baseName}
             PATHS ${VULKAN_SDK_LIB_PATHS}
@@ -132,17 +132,17 @@ if (WIN32)
         message(FATAL_ERROR "dxcompiler.lib not found. Please install DXC/Vulkan SDK and set VULKAN_SDK.")
     endif()
 
-    ignite_resolve_vulkan_lib(SHADERC_SHARED_LIB shaderc_shared)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_C_LIB spirv-cross-c)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_CORE_LIB spirv-cross-core)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_GLSL_LIB spirv-cross-glsl)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_HLSL_LIB spirv-cross-hlsl)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_MSL_LIB spirv-cross-msl)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_CPP_LIB spirv-cross-cpp)
-    ignite_resolve_vulkan_lib(SPIRV_CROSS_REFLECT_LIB spirv-cross-reflect)
+    umbra_resolve_vulkan_lib(SHADERC_SHARED_LIB shaderc_shared)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_C_LIB spirv-cross-c)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_CORE_LIB spirv-cross-core)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_GLSL_LIB spirv-cross-glsl)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_HLSL_LIB spirv-cross-hlsl)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_MSL_LIB spirv-cross-msl)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_CPP_LIB spirv-cross-cpp)
+    umbra_resolve_vulkan_lib(SPIRV_CROSS_REFLECT_LIB spirv-cross-reflect)
 
-    target_include_directories(IgniteCompiler PRIVATE "$ENV{VULKAN_SDK}/Include")
-    target_link_libraries(IgniteCompiler PRIVATE
+    target_include_directories(UmbraCompiler PRIVATE "$ENV{VULKAN_SDK}/Include")
+    target_link_libraries(UmbraCompiler PRIVATE
         ${DXCOMPILER_LIB}
 
         "d3d12.lib"
@@ -160,10 +160,10 @@ if (WIN32)
         ${SPIRV_CROSS_REFLECT_LIB}
     )
 elseif (UNIX AND NOT APPLE)
-    target_include_directories(IgniteCompiler PRIVATE "/usr/include")
-    target_link_directories(IgniteCompiler PRIVATE /usr/lib)
+    target_include_directories(UmbraCompiler PRIVATE "/usr/include")
+    target_link_directories(UmbraCompiler PRIVATE /usr/lib)
 
-    target_link_libraries(IgniteCompiler PRIVATE
+    target_link_libraries(UmbraCompiler PRIVATE
         vulkan
         shaderc_shared
         spirv-cross-c

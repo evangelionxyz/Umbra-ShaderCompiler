@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Evangelion Manuhutu
 
-#include "ShaderCompiler.h"
-#include "ShaderCompilerCAPI.h"
+#include "Umbra/ShaderCompiler.h"
+#include "Umbra/ShaderCompilerCAPI.h"
 
 #include <exception>
 #include <algorithm>
@@ -16,7 +16,7 @@ namespace
     // Holds current C callback wiring used by bridge callback.
     struct CLogBridgeContext
     {
-        IgniteLogCallback callback = nullptr;
+        UmbraLogCallback callback = nullptr;
         void* userData = nullptr;
     };
 
@@ -37,7 +37,7 @@ namespace
     }
 
     // Bridges C++ log callback invocation to C callback signature.
-    void CLogBridge(IGNITE_LogType type, const char* message, void* userData)
+    void CLogBridge(UMBRA_LogType type, const char* message, void* userData)
     {
         CLogBridgeContext* bridge = reinterpret_cast<CLogBridgeContext*>(userData);
         if (bridge == nullptr || bridge->callback == nullptr)
@@ -64,7 +64,7 @@ namespace
     }
 
     // Release helpers for nested reflection arrays.
-    void FreeResourceArray(IgniteShaderResourceInfo* array, size_t count)
+    void FreeResourceArray(UmbraShaderResourceInfo* array, size_t count)
     {
         if (!array)
         {
@@ -78,7 +78,7 @@ namespace
         std::free(array);
     }
 
-    void FreeStageIOArray(IgniteShaderStageIOInfo* array, size_t count)
+    void FreeStageIOArray(UmbraShaderStageIOInfo* array, size_t count)
     {
         if (!array)
         {
@@ -92,7 +92,7 @@ namespace
         std::free(array);
     }
 
-    void FreePushConstantArray(IgniteShaderPushConstantInfo* array, size_t count)
+    void FreePushConstantArray(UmbraShaderPushConstantInfo* array, size_t count)
     {
         if (!array)
         {
@@ -106,7 +106,7 @@ namespace
         std::free(array);
     }
 
-    void FreeVertexAttributeArray(IgniteVertexAttribute* array, size_t count)
+    void FreeVertexAttributeArray(UmbraVertexAttribute* array, size_t count)
     {
         if (!array)
         {
@@ -121,7 +121,7 @@ namespace
     }
 
     // Conversion helpers from C++ reflection vectors to C arrays.
-    bool FillResourceArray(const std::vector<ignite::ShaderResourceInfo>& source, IgniteShaderResourceInfo** outArray)
+    bool FillResourceArray(const std::vector<umbra::ShaderResourceInfo>& source, UmbraShaderResourceInfo** outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -129,7 +129,7 @@ namespace
             return true;
         }
 
-        IgniteShaderResourceInfo* array = static_cast<IgniteShaderResourceInfo*>(std::calloc(source.size(), sizeof(IgniteShaderResourceInfo)));
+        UmbraShaderResourceInfo* array = static_cast<UmbraShaderResourceInfo*>(std::calloc(source.size(), sizeof(UmbraShaderResourceInfo)));
         if (!array)
         {
             return false;
@@ -139,6 +139,7 @@ namespace
         {
             array[i].name = DuplicateCString(source[i].name);
             array[i].id = source[i].id;
+            array[i].location = source[i].location;
             array[i].set = source[i].set;
             array[i].binding = source[i].binding;
             array[i].count = source[i].count;
@@ -148,7 +149,7 @@ namespace
         return true;
     }
 
-    bool FillStageIOArray(const std::vector<ignite::ShaderStageIOInfo>& source, IgniteShaderStageIOInfo** outArray)
+    bool FillStageIOArray(const std::vector<umbra::ShaderStageIOInfo>& source, UmbraShaderStageIOInfo** outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -156,7 +157,7 @@ namespace
             return true;
         }
 
-        IgniteShaderStageIOInfo* array = static_cast<IgniteShaderStageIOInfo*>(std::calloc(source.size(), sizeof(IgniteShaderStageIOInfo)));
+        UmbraShaderStageIOInfo* array = static_cast<UmbraShaderStageIOInfo*>(std::calloc(source.size(), sizeof(UmbraShaderStageIOInfo)));
         if (!array)
         {
             return false;
@@ -176,7 +177,7 @@ namespace
         return true;
     }
 
-    bool FillPushConstantArray(const std::vector<ignite::ShaderPushConstantInfo>& source, IgniteShaderPushConstantInfo** outArray)
+    bool FillPushConstantArray(const std::vector<umbra::ShaderPushConstantInfo>& source, UmbraShaderPushConstantInfo** outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -184,7 +185,7 @@ namespace
             return true;
         }
 
-        IgniteShaderPushConstantInfo* array = static_cast<IgniteShaderPushConstantInfo*>(std::calloc(source.size(), sizeof(IgniteShaderPushConstantInfo)));
+        UmbraShaderPushConstantInfo* array = static_cast<UmbraShaderPushConstantInfo*>(std::calloc(source.size(), sizeof(UmbraShaderPushConstantInfo)));
         if (!array)
         {
             return false;
@@ -200,7 +201,7 @@ namespace
         return true;
     }
 
-    bool FillVertexArray(const std::vector<ignite::VertexAttribute>& source, IgniteVertexAttribute** outArray)
+    bool FillVertexArray(const std::vector<umbra::VertexAttribute>& source, UmbraVertexAttribute** outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -208,7 +209,7 @@ namespace
             return true;
         }
 
-        IgniteVertexAttribute* array = static_cast<IgniteVertexAttribute*>(std::calloc(source.size(), sizeof(IgniteVertexAttribute)));
+        UmbraVertexAttribute* array = static_cast<UmbraVertexAttribute*>(std::calloc(source.size(), sizeof(UmbraVertexAttribute)));
         if (!array)
         {
             return false;
@@ -228,7 +229,7 @@ namespace
     }
 
     // Populates C reflection object from the C++ reflection model.
-    IGNITE_ResultCode FillCReflectionInfo(const ignite::ShaderReflectionInfo& reflection, IgniteShaderReflectionInfo* outReflectionInfo)
+    UMBRA_ResultCode FillCReflectionInfo(const umbra::ShaderReflectionInfo& reflection, UmbraShaderReflectionInfo* outReflectionInfo)
     {
         outReflectionInfo->shaderType = reflection.shaderType;
         outReflectionInfo->numUniformBuffers = reflection.numUniformBuffers;
@@ -253,48 +254,48 @@ namespace
             !FillStageIOArray(reflection.stageOutputs, &outReflectionInfo->stageOutputs) ||
             !FillVertexArray(reflection.vertexAttributes, &outReflectionInfo->vertexAttributes))
         {
-            return IGNITE_RESULT_INTERNAL_ERROR;
+            return UMBRA_RESULT_INTERNAL_ERROR;
         }
 
-        return IGNITE_RESULT_OK;
+        return UMBRA_RESULT_OK;
     }
 }
 
 extern "C"
 {
     // C API: version query.
-    const char* IgniteCompiler_GetVersion(void)
+    const char* UmbraCompiler_GetVersion(void)
     {
-        return ignite::ShaderCompiler::GetVersion();
+        return umbra::ShaderCompiler::GetVersion();
     }
 
     // C API: log callback registration/clear.
-    void IgniteCompiler_SetLogCallback(IgniteLogCallback callback, void* userData)
+    void UmbraCompiler_SetLogCallback(UmbraLogCallback callback, void* userData)
     {
         g_logBridge.callback = callback;
         g_logBridge.userData = userData;
 
         if (callback == nullptr)
         {
-            ignite::ShaderCompiler::ClearLogCallback();
+            umbra::ShaderCompiler::ClearLogCallback();
             return;
         }
 
-        ignite::ShaderCompiler::SetLogCallback(CLogBridge, &g_logBridge);
+        umbra::ShaderCompiler::SetLogCallback(CLogBridge, &g_logBridge);
     }
 
     // C API: compile one shader file according to request options.
-    IGNITE_ResultCode IgniteCompiler_Compile(const IgniteCompileRequest* request)
+    UMBRA_ResultCode UmbraCompiler_Compile(const UmbraCompileRequest* request)
     {
         if (request == nullptr || request->inputPath == nullptr || request->inputPath[0] == '\0')
         {
-            return IGNITE_RESULT_INVALID_ARGUMENT;
+            return UMBRA_RESULT_INVALID_ARGUMENT;
         }
 
         try
         {
-            ignite::CompilerOptions options = {};
-            options.compilerType = IGNITE_SHADER_COMPILER_TYPE_DXC;
+            umbra::CompilerOptions options = {};
+            options.compilerType = UMBRA_SHADER_COMPILER_TYPE_DXC;
             options.platformType = request->platformType;
             options.filepath = request->inputPath;
 
@@ -339,44 +340,44 @@ extern "C"
 
             if (IsGlslFile(options.filepath))
             {
-                std::vector<uint8_t> result = ignite::ShaderCompiler::CompileGLSL(options);
+                std::vector<uint8_t> result = umbra::ShaderCompiler::CompileGLSL(options);
                 if (result.empty())
                 {
-                    return IGNITE_RESULT_COMPILATION_FAILED;
+                    return UMBRA_RESULT_COMPILATION_FAILED;
                 }
-                return IGNITE_RESULT_OK;
+                return UMBRA_RESULT_OK;
             }
 
 #if defined(_WIN32)
-            std::shared_ptr<ignite::DXCInstance> dxc = ignite::ShaderCompiler::CreateDXCCompiler();
+            std::shared_ptr<umbra::DXCInstance> dxc = umbra::ShaderCompiler::CreateDXCCompiler();
             if (!dxc)
             {
-                return IGNITE_RESULT_INTERNAL_ERROR;
+                return UMBRA_RESULT_INTERNAL_ERROR;
             }
 
-            std::vector<uint8_t> result = ignite::ShaderCompiler::CompileDXC(dxc, options);
+            std::vector<uint8_t> result = umbra::ShaderCompiler::CompileDXC(dxc, options);
             if (result.empty())
             {
-                return IGNITE_RESULT_COMPILATION_FAILED;
+                return UMBRA_RESULT_COMPILATION_FAILED;
             }
 
-            return IGNITE_RESULT_OK;
+            return UMBRA_RESULT_OK;
 #else
-            return IGNITE_RESULT_UNSUPPORTED_PLATFORM;
+            return UMBRA_RESULT_UNSUPPORTED_PLATFORM;
 #endif
         }
         catch (...)
         {
-            return IGNITE_RESULT_INTERNAL_ERROR;
+            return UMBRA_RESULT_INTERNAL_ERROR;
         }
     }
 
     // C API: SPIR-V reflection entry point.
-    IGNITE_ResultCode IgniteCompiler_ReflectSPIRV(const uint32_t* spirvData, size_t sizeInBytes, IGNITE_ShaderType shaderType, IgniteShaderReflectionInfo* outReflectionInfo)
+    UMBRA_ResultCode UmbraCompiler_ReflectSPIRV(const uint32_t* spirvData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo* outReflectionInfo)
     {
         if (!spirvData || sizeInBytes == 0 || !outReflectionInfo)
         {
-            return IGNITE_RESULT_INVALID_ARGUMENT;
+            return UMBRA_RESULT_INVALID_ARGUMENT;
         }
 
         std::memset(outReflectionInfo, 0, sizeof(*outReflectionInfo));
@@ -386,28 +387,28 @@ extern "C"
 
         try
         {
-            ignite::ShaderReflectionInfo reflection = ignite::ShaderReflection::SPIRVReflect(shaderType, shaderCode);
+            umbra::ShaderReflectionInfo reflection = umbra::ShaderReflection::SPIRVReflect(shaderType, shaderCode);
 
-            IGNITE_ResultCode result = FillCReflectionInfo(reflection, outReflectionInfo);
-            if (result != IGNITE_RESULT_OK)
+            UMBRA_ResultCode result = FillCReflectionInfo(reflection, outReflectionInfo);
+            if (result != UMBRA_RESULT_OK)
             {
-                IgniteCompiler_FreeReflectionInfo(outReflectionInfo);
+                UmbraCompiler_FreeReflectionInfo(outReflectionInfo);
             }
             return result;
         }
         catch (...)
         {
-            IgniteCompiler_FreeReflectionInfo(outReflectionInfo);
-            return IGNITE_RESULT_INTERNAL_ERROR;
+            UmbraCompiler_FreeReflectionInfo(outReflectionInfo);
+            return UMBRA_RESULT_INTERNAL_ERROR;
         }
     }
 
     // C API: DXIL reflection entry point.
-    IGNITE_ResultCode IgniteCompiler_ReflectDXIL(const uint8_t* dxilData, size_t sizeInBytes, IGNITE_ShaderType shaderType, IgniteShaderReflectionInfo* outReflectionInfo)
+    UMBRA_ResultCode UmbraCompiler_ReflectDXIL(const uint8_t* dxilData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo* outReflectionInfo)
     {
         if (!dxilData || sizeInBytes == 0 || !outReflectionInfo)
         {
-            return IGNITE_RESULT_INVALID_ARGUMENT;
+            return UMBRA_RESULT_INVALID_ARGUMENT;
         }
 
         std::memset(outReflectionInfo, 0, sizeof(*outReflectionInfo));
@@ -416,24 +417,24 @@ extern "C"
 
         try
         {
-            ignite::ShaderReflectionInfo reflection = ignite::ShaderReflection::DXILReflect(shaderType, shaderCode);
+            umbra::ShaderReflectionInfo reflection = umbra::ShaderReflection::DXILReflect(shaderType, shaderCode);
 
-            IGNITE_ResultCode result = FillCReflectionInfo(reflection, outReflectionInfo);
-            if (result != IGNITE_RESULT_OK)
+            UMBRA_ResultCode result = FillCReflectionInfo(reflection, outReflectionInfo);
+            if (result != UMBRA_RESULT_OK)
             {
-                IgniteCompiler_FreeReflectionInfo(outReflectionInfo);
+                UmbraCompiler_FreeReflectionInfo(outReflectionInfo);
             }
             return result;
         }
         catch (...)
         {
-            IgniteCompiler_FreeReflectionInfo(outReflectionInfo);
-            return IGNITE_RESULT_INTERNAL_ERROR;
+            UmbraCompiler_FreeReflectionInfo(outReflectionInfo);
+            return UMBRA_RESULT_INTERNAL_ERROR;
         }
     }
 
     // C API: release allocations produced by reflection functions.
-    void IgniteCompiler_FreeReflectionInfo(IgniteShaderReflectionInfo* reflectionInfo)
+    void UmbraCompiler_FreeReflectionInfo(UmbraShaderReflectionInfo* reflectionInfo)
     {
         if (!reflectionInfo)
         {
