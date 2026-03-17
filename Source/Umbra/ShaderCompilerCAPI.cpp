@@ -219,6 +219,7 @@ namespace
         {
             array[i].name = DuplicateCString(source[i].name);
             array[i].format = source[i].format;
+            array[i].location = source[i].location;
             array[i].bufferIndex = source[i].bufferIndex;
             array[i].offset = source[i].offset;
             array[i].elementStride = source[i].elementStride;

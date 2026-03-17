@@ -49,6 +49,7 @@ namespace umbra
     {
         std::string name;
         UMBRA_VertexElementFormat format = UMBRA_VERTEX_ELEMENT_FORMAT_INVALID;
+        uint32_t location = 0;
         uint32_t bufferIndex = 0;
         uint32_t offset = 0;
         uint32_t elementStride = 0;

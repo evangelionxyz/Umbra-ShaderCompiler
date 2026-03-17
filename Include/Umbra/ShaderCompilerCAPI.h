@@ -66,6 +66,7 @@ typedef struct UmbraVertexAttribute
 {
     char* name;
     UMBRA_VertexElementFormat format;
+    uint32_t location;
     uint32_t bufferIndex;
     uint32_t offset;
     uint32_t elementStride;

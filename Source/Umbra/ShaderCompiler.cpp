@@ -1093,6 +1093,7 @@ namespace umbra
                 VertexAttribute attribute = {};
                 attribute.name = input.name;
                 attribute.format = input.format;
+                attribute.location = input.location;
                 attribute.bufferIndex = 0;
                 attribute.offset = offset;
 
@@ -1390,6 +1391,7 @@ namespace umbra
                 VertexAttribute attribute = {};
                 attribute.name = name;
                 attribute.format = elementFormat;
+                attribute.location = static_cast<uint32_t>(input.registerIndex);
                 attribute.offset = offset;
                 attribute.bufferIndex = 0;
 
