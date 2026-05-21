@@ -137,15 +137,6 @@ jobs:
           echo "PATH=${VULKAN_SDK}/bin:$PATH" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=${VULKAN_SDK}/lib:${LD_LIBRARY_PATH:-}" >> "$GITHUB_ENV"
 
-      - name: Ensure Vulkan SDK is available
-        shell: bash
-        run: |
-          if [ -z "${VULKAN_SDK:-}" ]; then
-            echo "VULKAN_SDK is not set on this runner."
-            exit 1
-          fi
-          echo "Using VULKAN_SDK=${VULKAN_SDK}"
-
       - name: Configure CMake
         shell: bash
         run: cmake -S . -B build -G Ninja -DUMBRACOMPILER_BUILD_EXAMPLES=ON
