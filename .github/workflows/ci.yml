@@ -20,6 +20,12 @@ jobs:
       - name: Setup CMake
         uses: lukka/get-cmake@latest
 
+      - name: Cache Vulkan SDK (Windows)
+        uses: actions/cache@v4
+        with:
+          path: C:/VulkanSDK
+          key: ${{ runner.os }}-vulkan-sdk-1.4.350.0
+
       - name: Install Vulkan SDK using WinGet
         shell: pwsh
         run: |
@@ -64,16 +70,6 @@ jobs:
 
           "VULKAN_SDK=$($installed.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Ensure Vulkan SDK is available
-        shell: pwsh
-        run: |
-          if (-not $env:VULKAN_SDK) {
-            Write-Error "VULKAN_SDK is not set on this runner. Install Vulkan SDK on the runner or add a setup step before configure."
-            exit 1
-          }
-
-          Write-Host "Using VULKAN_SDK=$env:VULKAN_SDK"
-
       - name: Configure CMake
         shell: pwsh
         run: cmake -S . -B build/x64 -G "Visual Studio 18 2026" -A x64 -DUMBRACOMPILER_BUILD_EXAMPLES=ON
@@ -81,6 +77,15 @@ jobs:
       - name: Build
         shell: pwsh
         run: cmake --build build/x64 --config ${{ matrix.configuration }} --parallel
+
+      - name: Run examples
+        shell: pwsh
+        working-directory: build/x64/Example/${{ matrix.configuration }}
+        run: |
+          .\UmbraCompilerCExample.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          .\UmbraCompilerCPPExample.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   build-ubuntu:
     runs-on: ubuntu-24.04
@@ -94,6 +99,12 @@ jobs:
 
       - name: Setup CMake
         uses: lukka/get-cmake@latest
+
+      - name: Cache Vulkan SDK (Linux)
+        uses: actions/cache@v4
+        with:
+          path: /opt/vulkan
+          key: ${{ runner.os }}-vulkan-sdk-1.4.350.0
 
       - name: Install dependencies
         shell: bash
@@ -146,3 +157,11 @@ jobs:
       - name: Build
         shell: bash
         run: cmake --build build --parallel
+
+      - name: Run examples
+        shell: bash
+        working-directory: build/Example
+        run: |
+          set -e
+          ./UmbraCompilerCExample
+          ./UmbraCompilerCPPExample
