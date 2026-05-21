@@ -10,7 +10,6 @@
 #include <cstring>
 #include <cstdlib>
 
-
 namespace
 {
     // Holds current C callback wiring used by bridge callback.

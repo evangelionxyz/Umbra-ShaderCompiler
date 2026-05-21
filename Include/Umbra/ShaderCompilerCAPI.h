@@ -1,9 +1,9 @@
 // Copyright (c) 2026 Evangelion Manuhutu
 
+#pragma once
+
 #ifndef UMBRA_SHADER_COMPILER_CAPI_H
 #define UMBRA_SHADER_COMPILER_CAPI_H
-
-#pragma once
 
 #if defined(_WIN32)
     #if defined(UMBRACOMPILER_BUILD_SHARED)

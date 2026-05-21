@@ -1,9 +1,8 @@
 // Copyright (c) 2026 Evangelion Manuhutu
 
+#pragma once
 #ifndef _SHADER_ENUMS_H
 #define _SHADER_ENUMS_H
-
-#pragma once
 
 #ifdef __cplusplus
 extern "C" {
