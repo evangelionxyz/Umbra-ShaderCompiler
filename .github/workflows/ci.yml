@@ -80,8 +80,13 @@ jobs:
 
       - name: Run examples
         shell: pwsh
-        working-directory: build/x64/Example/${{ matrix.configuration }}
         run: |
+          $exampleRoot = "build/x64/Example"
+          $exampleDir = Join-Path $exampleRoot "${{ matrix.configuration }}"
+          if (-not (Test-Path $exampleDir)) {
+            $exampleDir = $exampleRoot
+          }
+          Set-Location $exampleDir
           .\UmbraCompilerCExample.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           .\UmbraCompilerCPPExample.exe
