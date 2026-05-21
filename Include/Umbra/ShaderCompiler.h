@@ -14,14 +14,23 @@
 #include <cstring>
 
 #ifdef _WIN32
-#   include <d3dcompiler.h>
-#   include <d3dcommon.h>
-#   include <combaseapi.h>
-#   include <wrl/client.h>
-#   include <dxcapi.h>
-#   ifndef NOMINMAX
-#       define NOMINMAX
-#   endif
+    #include <d3dcompiler.h>
+    #include <d3dcommon.h>
+    #include <combaseapi.h>
+    #include <wrl/client.h>
+    
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+#endif
+
+// DXC compiler API — available on Windows and Linux via the Vulkan SDK.
+// On Windows, dxcapi.h lives in the Windows SDK / Vulkan SDK include path.
+// On Linux,   dxcapi.h is supplied by the Vulkan SDK ($VULKAN_SDK/include/dxc/dxcapi.h).
+#ifdef _WIN32
+    #include <dxcapi.h>
+#elif __linux__
+    #include <dxc/dxcapi.h>
 #endif
 
 #include "ShaderBase.h"
@@ -40,6 +49,46 @@
 
 namespace umbra
 {
+    // Cross-platform DXC wide-string type.
+    //   Windows: WCHAR == wchar_t  (UTF-16, 2 bytes, from Windows SDK)
+    //   Linux:   WCHAR == char16_t (UTF-16, 2 bytes, from DXC WinAdapter.h via dxcapi.h)
+    // Use DxcString wherever a string must be passed to a DXC API function.
+    using DxcString = std::basic_string<WCHAR>;
+
+    // Converts narrow (ASCII/Latin-1) string to DxcString for DXC arguments.
+    static DxcString AnsiToDxcWide(const std::string& s)
+    {
+        DxcString result;
+        result.reserve(s.size());
+        for (unsigned char c : s)
+            result.push_back(static_cast<WCHAR>(c));
+        return result;
+    }
+
+    // Converts a filesystem path to a DxcString for use with DXC file-loading APIs.
+    static DxcString PathToDxcWide(const std::filesystem::path& p)
+    {
+#ifdef _WIN32
+        std::wstring ws = p.wstring();
+        return DxcString(ws.begin(), ws.end());
+#else
+        std::u16string u16 = p.u16string();
+        return DxcString(u16.begin(), u16.end());
+#endif
+    }
+
+    // Converts a wchar_t wide-string literal (e.g. from DXC_ARG_* macros or L"...") to DxcString.
+    //   Windows (sizeof(wchar_t)==2): char-by-char copy (same bit width).
+    //   Linux   (sizeof(wchar_t)==4): truncates lower 16 bits — safe for all ASCII DXC args.
+    static DxcString WcharToDxcString(const wchar_t* ws)
+    {
+        if (!ws) return {};
+        DxcString result;
+        for (const wchar_t* p = ws; *p; ++p)
+            result.push_back(static_cast<WCHAR>(*p));
+        return result;
+    }
+
     // Compiler log callback used by C++ and bridged by the C API.
     using LogCallback = void(*)(UMBRA_LogType type, const char* message, void* userData);
     
@@ -111,7 +160,7 @@ namespace umbra
     };
 
 #ifdef _WIN32
-    // Converts key=value define strings to DXC-compatible macro pairs.
+    // Converts key=value define strings to DXC-compatible macro pairs (Windows / FXC only).
     static void TokenizeDefineStrings(std::vector<std::string>& in, std::vector<D3D_SHADER_MACRO>& out)
     {
         if (in.empty())
@@ -126,13 +175,15 @@ namespace umbra
             define.Definition = strtok(nullptr, "=");
         }
     }
+#endif
 
-    // Parses a string with command line options into a vector of wstring, one wstring per option.
+    // Parses a string with command line options into a vector of DxcStrings, one per option.
     // Options are separated by spaces and may be quoted with "double quotes".
     // Backslash (\) means the next character is inserted literally into the output.
-    static void TokenizeCompilerOptions(const char* in, std::vector<std::wstring>& out)
+    // Cross-platform: works on Windows and Linux.
+    static void TokenizeCompilerOptions(const char* in, std::vector<DxcString>& out)
     {
-        std::wstring current;
+        DxcString current;
         bool quotes = false;
         bool escape = false;
         const char* ptr = in;
@@ -140,7 +191,7 @@ namespace umbra
         {
             if (escape)
             {
-                current.push_back(wchar_t(ch));
+                current.push_back(static_cast<WCHAR>(ch));
                 escape = false;
                 continue;
             }
@@ -161,7 +212,7 @@ namespace umbra
             }
             else
             {
-                current.push_back(wchar_t(ch));
+                current.push_back(static_cast<WCHAR>(ch));
             }
         }
 
@@ -170,7 +221,6 @@ namespace umbra
             out.push_back(current);
         }
     }
-#endif
 
     // Utility hash narrowing helper used for stable 32-bit IDs.
     static uint32_t HashToUint(size_t hash)
@@ -184,11 +234,6 @@ namespace umbra
         return path.lexically_normal().make_preferred().string();
     }
 
-    static std::wstring AnsiToWide(const std::string& s)
-    {
-        return std::wstring(s.begin(), s.end());
-    }
-
     static bool IsSpace(char ch) 
     { 
         return strchr(" \t\r\n", ch) != nullptr; 
@@ -199,14 +244,24 @@ namespace umbra
         return (a == b) && a == ' ';
     }
 
+    // Cross-platform DXC COM smart-pointer alias.
+    //   Windows: Microsoft::WRL::ComPtr<T>  (from wrl/client.h, included above)
+    //   Linux:   CComPtr<T>                 (from DXC's WinAdapter.h via dxcapi.h)
+    // Use DxcComPtr<T> everywhere instead of raw WRL or CComPtr to stay portable.
 #ifdef _WIN32
+    template<typename T>
+    using DxcComPtr = Microsoft::WRL::ComPtr<T>;
+#else
+    template<typename T>
+    using DxcComPtr = CComPtr<T>;
+#endif
+
     // DXC COM objects reused across compilation invocations.
     struct DXCInstance
     {
-        Microsoft::WRL::ComPtr<IDxcCompiler3> compiler;
-        Microsoft::WRL::ComPtr<IDxcUtils> utils;
+        DxcComPtr<IDxcCompiler3> compiler;
+        DxcComPtr<IDxcUtils> utils;
     };
-#endif
 
     // Per-shader compilation description.
     struct ShaderDesc

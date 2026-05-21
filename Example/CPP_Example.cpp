@@ -242,6 +242,13 @@ int main()
             continue;
         }
 
+#if !defined(_WIN32)
+        if (IsHlslFile(inputPath))
+        {
+            continue;
+        }
+#endif
+
         const UMBRA_ShaderType shaderType = DetectShaderTypeFromFilename(inputPath.filename().string());
         const std::filesystem::path outputDir = DetectOutputDirectory(inputPath);
         std::filesystem::create_directories(outputDir);
@@ -255,6 +262,7 @@ int main()
             failedCount++;
         }
 
+#if defined(_WIN32) && !defined(__linux__)
         if (IsHlslFile(inputPath))
         {
             if (CompileAndReflect(inputPath, outputDir, shaderType, UMBRA_SHADER_PLATFORM_TYPE_DXIL))
@@ -266,6 +274,7 @@ int main()
                 failedCount++;
             }
         }
+#endif
     }
 
     std::cout << "Compiled: " << compiledCount << ", Failed: " << failedCount << std::endl;

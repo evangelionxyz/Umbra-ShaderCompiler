@@ -160,19 +160,64 @@ if (WIN32)
         ${SPIRV_CROSS_REFLECT_LIB}
     )
 elseif (UNIX AND NOT APPLE)
-    target_include_directories(UmbraCompiler PRIVATE "/usr/include")
-    target_link_directories(UmbraCompiler PRIVATE /usr/lib)
+    if (NOT DEFINED VULKAN_SDK AND DEFINED ENV{VULKAN_SDK})
+        set(VULKAN_SDK "$ENV{VULKAN_SDK}")
+    endif()
+
+    if (NOT VULKAN_SDK)
+        message(FATAL_ERROR
+            "VULKAN_SDK is not set.\n"
+            "Install the Vulkan SDK (https://vulkan.lunarg.com) and set the VULKAN_SDK "
+            "environment variable to its x86_64 subdirectory, e.g.:\n"
+            "  export VULKAN_SDK=/opt/vulkan/1.3.x/x86_64\n"
+            "  source \$VULKAN_SDK/../setup-env.sh")
+    endif()
+
+    message("   >> VULKAN_SDK: ${VULKAN_SDK}")
+
+    # Helper: find a required library in the Vulkan SDK lib dir (then system paths).
+    function(umbra_linux_find_lib outVar name)
+        find_library(${outVar}
+            NAMES ${name}
+            PATHS "${VULKAN_SDK}/lib" /usr/lib /usr/bin /usr/local/lib
+            NO_DEFAULT_PATH
+        )
+        if (NOT ${outVar})
+            message(FATAL_ERROR
+                "Could not find lib${name}.\n"
+                "Checked: ${VULKAN_SDK}/lib, /usr/lib, /usr/bin, /usr/local/lib\n"
+                "Ensure the Vulkan SDK is fully installed and VULKAN_SDK is correct.")
+        endif()
+        message("   >> lib${name}: ${${outVar}}")
+    endfunction()
+
+    umbra_linux_find_lib(DXCOMPILER_LIB          dxcompiler)
+    umbra_linux_find_lib(SHADERC_LIB             shaderc_shared)
+    umbra_linux_find_lib(SPIRV_CROSS_C_LIB       spirv-cross-c)
+    umbra_linux_find_lib(SPIRV_CROSS_CORE_LIB    spirv-cross-core)
+    umbra_linux_find_lib(SPIRV_CROSS_GLSL_LIB    spirv-cross-glsl)
+    umbra_linux_find_lib(SPIRV_CROSS_HLSL_LIB    spirv-cross-hlsl)
+    umbra_linux_find_lib(SPIRV_CROSS_MSL_LIB     spirv-cross-msl)
+    umbra_linux_find_lib(SPIRV_CROSS_CPP_LIB     spirv-cross-cpp)
+    umbra_linux_find_lib(SPIRV_CROSS_REFLECT_LIB spirv-cross-reflect)
+
+    target_include_directories(UmbraCompiler
+        PUBLIC
+            "${VULKAN_SDK}/include"   # provides dxcapi.h, dxc/Support/WinAdapter.h, shaderc/, spirv_cross/
+        PRIVATE
+            "/usr/include"
+    )
 
     target_link_libraries(UmbraCompiler PRIVATE
-        vulkan
-        shaderc_shared
-        spirv-cross-c
-        spirv-cross-core
-        spirv-cross-glsl
-        spirv-cross-hlsl
-        spirv-cross-msl
-        spirv-cross-cpp
-        spirv-cross-reflect
+        ${DXCOMPILER_LIB}
+        ${SHADERC_LIB}
+        ${SPIRV_CROSS_C_LIB}
+        ${SPIRV_CROSS_CORE_LIB}
+        ${SPIRV_CROSS_GLSL_LIB}
+        ${SPIRV_CROSS_HLSL_LIB}
+        ${SPIRV_CROSS_MSL_LIB}
+        ${SPIRV_CROSS_CPP_LIB}
+        ${SPIRV_CROSS_REFLECT_LIB}
         pthread dl m rt
     )
 endif()

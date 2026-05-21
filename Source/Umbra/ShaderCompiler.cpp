@@ -29,8 +29,10 @@ namespace umbra
             }
         }
 
-        // Converts wide strings (DXC messages on Windows) to UTF-8.
-        std::string WStringToUtf8(const std::wstring& text)
+        // Converts a DXC wide string (DxcString) to UTF-8 for logging.
+        // On Windows DxcString == std::wstring; WideCharToMultiByte gives proper UTF-8.
+        // On Linux   DxcString == std::u16string; DXC messages are ASCII so narrow copy suffices.
+        std::string WStringToUtf8(const DxcString& text)
         {
             if (text.empty())
             {
@@ -532,9 +534,19 @@ namespace umbra
 
     std::vector<uint8_t> ShaderCompiler::CompileDXC(std::shared_ptr<DXCInstance> instance, const CompilerOptions &options)
     {
-        using namespace Microsoft::WRL;
+#ifndef _WIN32
+        // DXC on Linux (Vulkan SDK) can only produce SPIR-V output.
+        // DXIL compilation requires the D3D12 runtime which is Windows-only.
+        if (options.platformType != UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
+        {
+            DispatchLog(UMBRA_LOG_TYPE_ERROR,
+                "DXC on Linux only supports SPIR-V output. DXIL compilation requires Windows.");
+            return {};
+        }
+#endif
 
-        static const wchar_t* dxcOptimizationLevelRemap[] =
+        // Optimization-level mapping: elements are LPCWSTR == const WCHAR*, cross-platform.
+        static const WCHAR* dxcOptimizationLevelRemap[] =
         {
             // Note: if you're getting errors like "error C2065: 'DXC_ARG_SKIP_OPTIMIZATIONS': undeclared identifier" here,
             // please update the Windows SDK to at least version 10.0.20348.0.
@@ -544,40 +556,36 @@ namespace umbra
             DXC_ARG_OPTIMIZATION_LEVEL3,
         };
 
-        // Gather SPIRV register shifts once
-        static const wchar_t* dxcRegShiftArgs[] =
+        // Register-shift DXC flag names as cross-platform DxcStrings.
+        const DxcString dxcRegShiftArgs[] =
         {
-            L"-fvk-t-shift",
-            L"-fvk-s-shift",
-            L"-fvk-b-shift",
-            L"-fvk-u-shift",
+            WcharToDxcString(L"-fvk-t-shift"),
+            WcharToDxcString(L"-fvk-s-shift"),
+            WcharToDxcString(L"-fvk-b-shift"),
+            WcharToDxcString(L"-fvk-u-shift"),
         };
 
-        std::vector<std::wstring> regShifts;
+        // Gather SPIRV register shifts once.
+        std::vector<DxcString> regShifts;
         for (uint32_t reg = 0; reg < 4; reg++)
         {
             for (uint32_t space = 0; space < SPIRV_SPACES_NUM; space++)
             {
-                wchar_t buf[64];
                 regShifts.push_back(dxcRegShiftArgs[reg]);
-
-                swprintf(buf, std::size(buf), L"%u", (&options.tRegShift)[reg]);
-                regShifts.push_back(std::wstring(buf));
-
-                swprintf(buf, std::size(buf), L"%u", space);
-                regShifts.push_back(std::wstring(buf));
+                regShifts.push_back(AnsiToDxcWide(std::to_string((&options.tRegShift)[reg])));
+                regShifts.push_back(AnsiToDxcWide(std::to_string(space)));
             }
         }
 
-        // Compile shader
-        std::wstring wsourceFile = options.filepath.wstring();
+        // Compile shader.
+        DxcString wsourceFile = PathToDxcWide(options.filepath);
         std::vector<uint8_t> resultCode;
-        
-        ComPtr<IDxcBlobEncoding> sourceBlob;
+
+        DxcComPtr<IDxcBlobEncoding> sourceBlob;
         HRESULT hr = instance->utils->LoadFile(wsourceFile.c_str(), nullptr, &sourceBlob);
         if (SUCCEEDED(hr))
         {
-            std::vector<std::wstring> args;
+            std::vector<DxcString> args;
             args.reserve(16 + (options.defines.size()
                 + options.defines.size()
                 + options.includeDirectories.size()) * 2
@@ -585,70 +593,70 @@ namespace umbra
                 + options.spirvExtensions.size() : 0));
 
             args.push_back(wsourceFile); // Source file
-            args.push_back(L"-T"); // Profile
+            args.push_back(WcharToDxcString(L"-T")); // Profile
 
             std::string shaderProfile = std::string(UMBRA_ShaderTypeToProfile(options.shaderDesc.shaderType));
-            args.push_back(AnsiToWide(shaderProfile + "_" + options.shaderDesc.shaderModel));
-            args.push_back(L"-E"); // Entry Point
-            args.push_back(AnsiToWide(options.shaderDesc.entryPoint));
+            args.push_back(AnsiToDxcWide(shaderProfile + "_" + options.shaderDesc.shaderModel));
+            args.push_back(WcharToDxcString(L"-E")); // Entry Point
+            args.push_back(AnsiToDxcWide(options.shaderDesc.entryPoint));
 
             // Defines
             for (const std::string& define : options.defines)
             {
-                args.push_back(L"-D");
-                args.push_back(AnsiToWide(define));
+                args.push_back(WcharToDxcString(L"-D"));
+                args.push_back(AnsiToDxcWide(define));
             }
 
             // Include directories
             for (const std::filesystem::path& path : options.includeDirectories)
             {
-                args.push_back(L"-I");
-                args.push_back(path.wstring());
+                args.push_back(WcharToDxcString(L"-I"));
+                args.push_back(PathToDxcWide(path));
             }
 
             // Arguments
-            args.push_back(dxcOptimizationLevelRemap[static_cast<uint32_t>(options.shaderDesc.optLevel)]);
+            args.push_back(DxcString(dxcOptimizationLevelRemap[static_cast<uint32_t>(options.shaderDesc.optLevel)]));
 
             uint32_t shaderModelIndex = (options.shaderDesc.shaderModel[0] - '0') * 10 + (options.shaderDesc.shaderModel[2] - '0');
             if (shaderModelIndex >= 62)
-                args.push_back(L"-enable-16bit-types");
+                args.push_back(WcharToDxcString(L"-enable-16bit-types"));
 
             if (options.warningsAreErrors)
-                args.push_back(DXC_ARG_WARNINGS_ARE_ERRORS);
+                args.push_back(DxcString(DXC_ARG_WARNINGS_ARE_ERRORS));
 
             if (options.allResourcesBound)
-                args.push_back(DXC_ARG_ALL_RESOURCES_BOUND);
+                args.push_back(DxcString(DXC_ARG_ALL_RESOURCES_BOUND));
 
             if (options.matrixRowMajor)
-                args.push_back(DXC_ARG_PACK_MATRIX_ROW_MAJOR);
+                args.push_back(DxcString(DXC_ARG_PACK_MATRIX_ROW_MAJOR));
 
             if (options.hlsl2021)
             {
-                args.push_back(L"-HV");
-                args.push_back(L"2021");
+                args.push_back(WcharToDxcString(L"-HV"));
+                args.push_back(WcharToDxcString(L"2021"));
             }
 
             if (options.embedPdb)
             {
-                args.push_back(L"-Qembed_debug");
+                args.push_back(WcharToDxcString(L"-Qembed_debug"));
             }
 
             if (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
             {
-                args.push_back(L"-spirv");
-                args.push_back(std::wstring(L"-fspv-target-env=vulkan") + AnsiToWide(options.shaderDesc.vulkanVersion));
+                args.push_back(WcharToDxcString(L"-spirv"));
+                args.push_back(WcharToDxcString(L"-fspv-target-env=vulkan") + AnsiToDxcWide(options.shaderDesc.vulkanVersion));
 
                 if (!options.shaderDesc.vulkanMemoryLayout.empty())
                 {
-                    args.push_back(std::wstring(L"-fvk-use-") + AnsiToWide(options.shaderDesc.vulkanMemoryLayout) + std::wstring(L"-layout"));
+                    args.push_back(WcharToDxcString(L"-fvk-use-") + AnsiToDxcWide(options.shaderDesc.vulkanMemoryLayout) + WcharToDxcString(L"-layout"));
                 }
 
                 for (const std::string& ext : options.spirvExtensions)
                 {
-                    args.push_back(std::wstring(L"-fspv-extension=") + AnsiToWide(ext));
+                    args.push_back(WcharToDxcString(L"-fspv-extension=") + AnsiToDxcWide(ext));
                 }
 
-                for (const std::wstring& arg : regShifts)
+                for (const DxcString& arg : regShifts)
                 {
                     args.push_back(arg);
                 }
@@ -657,7 +665,7 @@ namespace umbra
             {
                 if (options.stripReflection)
                 {
-                    args.push_back(L"-Qstrip_reflect");
+                    args.push_back(WcharToDxcString(L"-Qstrip_reflect"));
                 }
             }
 
@@ -669,21 +677,19 @@ namespace umbra
             // Debug output
             if (options.verbose)
             {
-                std::wstringstream cmd;
-                for (const std::wstring& arg : args)
+                DxcString wCmd;
+                for (const DxcString& arg : args)
                 {
-                    cmd << arg;
-                    cmd << L" ";
+                    wCmd += arg;
+                    wCmd += static_cast<WCHAR>(' ');
                 }
-
-                const std::wstring wcmd = cmd.str();
-                DispatchLog(UMBRA_LOG_TYPE_WARNING, WStringToUtf8(wcmd));
+                DispatchLog(UMBRA_LOG_TYPE_WARNING, WStringToUtf8(wCmd));
             }
 
-            // Now that args are finalized, get their C-string pointer into vector
-            std::vector<const wchar_t*> argPointers;
+            // Now that args are finalized, get their C-string pointers into a vector.
+            std::vector<const WCHAR*> argPointers;
             argPointers.reserve(args.size());
-            for (const std::wstring& arg : args)
+            for (const DxcString& arg : args)
             {
                 argPointers.push_back(arg.c_str());
             }
@@ -693,13 +699,20 @@ namespace umbra
             sourceBuffer.Ptr = sourceBlob->GetBufferPointer();
             sourceBuffer.Size = sourceBlob->GetBufferSize();
 
-            ComPtr<IDxcIncludeHandler> pDefaultIncludeHandler;
+            DxcComPtr<IDxcIncludeHandler> pDefaultIncludeHandler;
             instance->utils->CreateDefaultIncludeHandler(&pDefaultIncludeHandler);
 
-            ComPtr<IDxcBlob> shaderBlob;
-            ComPtr<IDxcBlobEncoding> errorBlob;
-            ComPtr<IDxcResult> dxcResult;
-            hr = instance->compiler->Compile(&sourceBuffer, argPointers.data(), (uint32_t)argPointers.size(), pDefaultIncludeHandler.Get(), IID_PPV_ARGS(&dxcResult));
+            DxcComPtr<IDxcBlob> shaderBlob;
+            DxcComPtr<IDxcBlobEncoding> errorBlob;
+            DxcComPtr<IDxcResult> dxcResult;
+
+            // Extract raw include-handler pointer: WRL::ComPtr needs .Get(), CComPtr has operator T*().
+#ifdef _WIN32
+            IDxcIncludeHandler* pIncludeHandlerRaw = pDefaultIncludeHandler.Get();
+#else
+            IDxcIncludeHandler* pIncludeHandlerRaw = pDefaultIncludeHandler;
+#endif
+            hr = instance->compiler->Compile(&sourceBuffer, argPointers.data(), (uint32_t)argPointers.size(), pIncludeHandlerRaw, IID_PPV_ARGS(&dxcResult));
 
             if (SUCCEEDED(hr))
             {
@@ -735,11 +748,12 @@ namespace umbra
 
             if (isSucceeded)
             {
-                // Dump PDB
+                // Dump PDB — _wfopen and IDxcBlobUtf16 are Windows-only.
+#ifdef _WIN32
                 if (options.pdb)
                 {
-                    ComPtr<IDxcBlob> pdb;
-                    ComPtr<IDxcBlobUtf16> pdbName;
+                    DxcComPtr<IDxcBlob> pdb;
+                    DxcComPtr<IDxcBlobUtf16> pdbName;
                     if (SUCCEEDED(dxcResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName)))
                     {
                         std::wstring file = options.filepath.parent_path().wstring() + L"/" + L"PDB" + L"/" + std::wstring(pdbName->GetStringPointer());
@@ -751,6 +765,12 @@ namespace umbra
                         }
                     }
                 }
+#else
+                if (options.pdb)
+                {
+                    DispatchLog(UMBRA_LOG_TYPE_WARNING, "PDB output is not supported on Linux.");
+                }
+#endif
 
                 // Dump output
                 std::string outputExtension = UMBRA_ShaderPlatformExtension(options.platformType);
@@ -1072,8 +1092,8 @@ namespace umbra
         collectStageIO(SPVC_RESOURCE_TYPE_STAGE_INPUT, info.stageInputs);
         collectStageIO(SPVC_RESOURCE_TYPE_STAGE_OUTPUT, info.stageOutputs);
 
-        info.numStageInputs = info.stageInputs.size();
-        info.numStageOutputs = info.stageOutputs.size();
+        info.numStageInputs = static_cast<uint32_t>(info.stageInputs.size());
+        info.numStageOutputs = static_cast<uint32_t>(info.stageOutputs.size());
 
         if (type == UMBRA_SHADER_TYPE_VERTEX)
         {
@@ -1351,8 +1371,8 @@ namespace umbra
             return a.location < b.location;
         });
 
-        info.numStageInputs = info.stageInputs.size();
-        info.numStageOutputs = info.stageOutputs.size();
+        info.numStageInputs = static_cast<uint32_t>(info.stageInputs.size());
+        info.numStageOutputs = static_cast<uint32_t>(info.stageOutputs.size());
 
         if (type == UMBRA_SHADER_TYPE_VERTEX && !inputs.empty())
         {

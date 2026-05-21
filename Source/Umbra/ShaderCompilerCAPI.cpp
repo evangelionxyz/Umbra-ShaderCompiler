@@ -348,7 +348,8 @@ extern "C"
                 return UMBRA_RESULT_OK;
             }
 
-#if defined(_WIN32)
+            // DXC is available on Windows and Linux (via Vulkan SDK libdxcompiler.so).
+            // CompileDXC internally enforces SPIRV-only output on Linux.
             std::shared_ptr<umbra::DXCInstance> dxc = umbra::ShaderCompiler::CreateDXCCompiler();
             if (!dxc)
             {
@@ -362,9 +363,6 @@ extern "C"
             }
 
             return UMBRA_RESULT_OK;
-#else
-            return UMBRA_RESULT_UNSUPPORTED_PLATFORM;
-#endif
         }
         catch (...)
         {

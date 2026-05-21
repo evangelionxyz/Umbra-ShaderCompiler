@@ -447,7 +447,11 @@ int main(void)
             }
 
             char fullPath[1024] = {0};
-            snprintf(fullPath, sizeof(fullPath), "%s/%s", currentDirectory, entry->d_name);
+            int fullPathLen = snprintf(fullPath, sizeof(fullPath), "%s/%s", currentDirectory, entry->d_name);
+            if (fullPathLen < 0 || (size_t)fullPathLen >= sizeof(fullPath))
+            {
+                continue;
+            }
 
             DIR* maybeDir = opendir(fullPath);
             if (maybeDir != NULL)
@@ -461,6 +465,11 @@ int main(void)
             }
 
             if (!IsShaderSourceFile(entry->d_name))
+            {
+                continue;
+            }
+
+            if (IsHlslFile(entry->d_name))
             {
                 continue;
             }
@@ -479,17 +488,8 @@ int main(void)
                     compiledCount++;
                 else
                     failedCount++;
-
-                if (IsHlslFile(entry->d_name))
-                {
-                    if (CompileAndReflect(fullPath, outputDirectory, shaderType, UMBRA_SHADER_PLATFORM_TYPE_DXIL))
-                        compiledCount++;
-                    else
-                        failedCount++;
-                }
             }
         }
-
         closedir(directory);
     }
 #endif
