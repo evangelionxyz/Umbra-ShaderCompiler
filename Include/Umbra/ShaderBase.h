@@ -18,7 +18,8 @@ typedef enum UMBRA_LogType
 {
     UMBRA_LOG_TYPE_INFO = 0,
     UMBRA_LOG_TYPE_WARNING = 1,
-    UMBRA_LOG_TYPE_ERROR = 2
+    UMBRA_LOG_TYPE_ERROR = 2,
+    UMBRA_LOG_TYPE_CRITICAL = 3
 } UMBRA_LogType;
 
 typedef enum UMBRA_ShaderType

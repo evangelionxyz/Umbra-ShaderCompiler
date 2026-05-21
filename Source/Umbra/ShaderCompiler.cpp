@@ -733,26 +733,26 @@ namespace umbra
                 }
             }
 
-            // Dump PDB
-            if (isSucceeded && options.pdb)
-            {
-                ComPtr<IDxcBlob> pdb;
-                ComPtr<IDxcBlobUtf16> pdbName;
-                if (SUCCEEDED(dxcResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName)))
-                {
-                    std::wstring file = options.filepath.parent_path().wstring() + L"/" + L"PDB" + L"/" + std::wstring(pdbName->GetStringPointer());
-                    FILE* fp = _wfopen(file.c_str(), L"wb");
-                    if (fp)
-                    {
-                        fwrite(pdb->GetBufferPointer(), pdb->GetBufferSize(), 1, fp);
-                        fclose(fp);
-                    }
-                }
-            }
-
-            // Dump output
             if (isSucceeded)
             {
+                // Dump PDB
+                if (options.pdb)
+                {
+                    ComPtr<IDxcBlob> pdb;
+                    ComPtr<IDxcBlobUtf16> pdbName;
+                    if (SUCCEEDED(dxcResult->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName)))
+                    {
+                        std::wstring file = options.filepath.parent_path().wstring() + L"/" + L"PDB" + L"/" + std::wstring(pdbName->GetStringPointer());
+                        FILE *fp = _wfopen(file.c_str(), L"wb");
+                        if (fp)
+                        {
+                            fwrite(pdb->GetBufferPointer(), pdb->GetBufferSize(), 1, fp);
+                            fclose(fp);
+                        }
+                    }
+                }
+
+                // Dump output
                 std::string outputExtension = UMBRA_ShaderPlatformExtension(options.platformType);
                 std::filesystem::path parentPath = options.filepath.parent_path();
                 if (!options.outputFilepath.empty())
@@ -763,12 +763,12 @@ namespace umbra
                 std::filesystem::path filename = parentPath / options.filepath.filename().replace_extension(outputExtension);
 
                 size_t bufferSize = shaderBlob->GetBufferSize();
-                const void* bufferPtr = shaderBlob->GetBufferPointer();
+                const void *bufferPtr = shaderBlob->GetBufferPointer();
                 resultCode.resize(bufferSize);
                 std::memcpy(resultCode.data(), bufferPtr, bufferSize);
 
                 DumpShader(options, resultCode, filename.generic_string());
-                DispatchLog(UMBRA_LOG_TYPE_INFO, "Compiled shader: " + filename.generic_string());
+                DispatchLog(UMBRA_LOG_TYPE_INFO, "Compiled shader: " + filename.generic_string());   
             }
         }
 
