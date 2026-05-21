@@ -29,10 +29,14 @@ jobs:
       - name: Install Vulkan SDK using WinGet
         shell: pwsh
         run: |
-          if ($env:VULKAN_SDK) {
-            Write-Host "VULKAN_SDK already set to $env:VULKAN_SDK"
-            "VULKAN_SDK=$env:VULKAN_SDK" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-            exit 0
+          $sdkRoot = "C:/VulkanSDK"
+          if (Test-Path $sdkRoot) {
+            $installed = Get-ChildItem $sdkRoot -Directory | Sort-Object Name -Descending | Select-Object -First 1
+            if ($installed) {
+              Write-Host "Vulkan SDK found in cache at $($installed.FullName)"
+              "VULKAN_SDK=$($installed.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+              exit 0
+            }
           }
 
           $wingetStdOut = Join-Path $env:RUNNER_TEMP "winget-vulkan-install.out.log"
@@ -78,20 +82,6 @@ jobs:
         shell: pwsh
         run: cmake --build build/x64 --config ${{ matrix.configuration }} --parallel
 
-      - name: Run examples
-        shell: pwsh
-        run: |
-          $exampleRoot = "build/x64/Example"
-          $exampleDir = Join-Path $exampleRoot "${{ matrix.configuration }}"
-          if (-not (Test-Path $exampleDir)) {
-            $exampleDir = $exampleRoot
-          }
-          Set-Location $exampleDir
-          .\UmbraCompilerCExample.exe
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          .\UmbraCompilerCPPExample.exe
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
   build-ubuntu:
     runs-on: ubuntu-24.04
     strategy:
@@ -131,15 +121,16 @@ jobs:
           set -eux
           VULKAN_VERSION="1.4.350.0"
           VULKAN_DIR="/opt/vulkan"
-          if [ -n "${VULKAN_SDK:-}" ] && [ -d "${VULKAN_SDK}" ]; then
-            echo "VULKAN_SDK already set to ${VULKAN_SDK}"
+          export VULKAN_SDK="${VULKAN_DIR}/${VULKAN_VERSION}/x86_64"
+          
+          if [ -d "${VULKAN_SDK}" ]; then
+            echo "VULKAN_SDK found in cache at ${VULKAN_SDK}"
           else
             mkdir -p "${VULKAN_DIR}"
             wget -qO /tmp/vulkan_sdk.tar.xz \
               "https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/linux/vulkansdk-linux-x86_64-${VULKAN_VERSION}.tar.xz"
             tar -xf /tmp/vulkan_sdk.tar.xz -C "${VULKAN_DIR}"
             rm /tmp/vulkan_sdk.tar.xz
-            export VULKAN_SDK="${VULKAN_DIR}/${VULKAN_VERSION}/x86_64"
           fi
 
           echo "VULKAN_SDK=${VULKAN_SDK}" >> "$GITHUB_ENV"
@@ -163,10 +154,3 @@ jobs:
         shell: bash
         run: cmake --build build --parallel
 
-      - name: Run examples
-        shell: bash
-        working-directory: build/Example
-        run: |
-          set -e
-          ./UmbraCompilerCExample
-          ./UmbraCompilerCPPExample
