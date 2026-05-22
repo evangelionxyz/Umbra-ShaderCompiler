@@ -417,6 +417,8 @@ namespace umbra
             if (strcmp(version, "1.0") == 0) return shaderc_env_version_vulkan_1_0;
             if (strcmp(version, "1.1") == 0) return shaderc_env_version_vulkan_1_1;
             if (strcmp(version, "1.2") == 0) return shaderc_env_version_vulkan_1_2;
+            if (strcmp(version, "1.3") == 0) return shaderc_env_version_vulkan_1_3;
+            if (strcmp(version, "1.4") == 0) return shaderc_env_version_vulkan_1_4;
             return shaderc_env_version_vulkan_1_3;
         }
     }
@@ -544,6 +546,17 @@ namespace umbra
             return {};
         }
 #endif
+
+        // Vulkan v1.4 is not supported yet by DX Compiler
+        if (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV)
+        {
+            auto vulkanVersion = UMBRA_ShaderToVulkanEnvVersion(options.shaderDesc.vulkanVersion.c_str());
+            if (vulkanVersion == shaderc_env_version_vulkan_1_4)
+            {
+                DispatchLog(UMBRA_LOG_TYPE_ERROR, "Vulkan v1.4 is not supported yet by DX Compiler, please try with Vulkan v1.3");
+                return {};
+            }
+        }
 
         // Optimization-level mapping: elements are LPCWSTR == const WCHAR*, cross-platform.
         static const WCHAR* dxcOptimizationLevelRemap[] =
@@ -735,14 +748,11 @@ namespace umbra
                     errorText += " ";
                     errorText += std::string((const char*)errorBlob->GetBufferPointer(), errorBlob->GetBufferSize());
                 }
-                DispatchLog(UMBRA_LOG_TYPE_ERROR, errorText);
+                DispatchLog(UMBRA_LOG_TYPE_CRITICAL, errorText);
 
-                if (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV
-                    && errorText.find("SPIR-V CodeGen not available") != std::string::npos)
+                if (options.platformType == UMBRA_SHADER_PLATFORM_TYPE_SPIRV && errorText.find("SPIR-V CodeGen not available") != std::string::npos)
                 {
-                    DispatchLog(UMBRA_LOG_TYPE_ERROR,
-                        "DXC runtime does not include SPIR-V codegen. Ensure Vulkan SDK dxcompiler.dll/dxil.dll are loaded (copy next to the executable or adjust PATH)."
-                    );
+                    DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXC runtime does not include SPIR-V codegen. Ensure Vulkan SDK dxcompiler.dll/dxil.dll are loaded (copy next to the executable or adjust PATH).");
                 }
             }
 
