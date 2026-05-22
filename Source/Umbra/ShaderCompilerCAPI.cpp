@@ -16,16 +16,16 @@ namespace
     struct CLogBridgeContext
     {
         UmbraLogCallback callback = nullptr;
-        void* userData = nullptr;
+        void *userData = nullptr;
     };
 
     CLogBridgeContext g_logBridge = {};
 
     // Duplicates std::string into malloc-allocated C string.
-    char* DuplicateCString(const std::string& value)
+    char *DuplicateCString(const std::string &value)
     {
         const size_t len = value.size();
-        char* result = static_cast<char*>(std::malloc(len + 1));
+        char *result = static_cast<char *>(std::malloc(len + 1));
         if (!result)
         {
             return nullptr;
@@ -36,9 +36,9 @@ namespace
     }
 
     // Bridges C++ log callback invocation to C callback signature.
-    void CLogBridge(UMBRA_LogType type, const char* message, void* userData)
+    void CLogBridge(UMBRA_LogType type, const char *message, void *userData)
     {
-        CLogBridgeContext* bridge = reinterpret_cast<CLogBridgeContext*>(userData);
+        CLogBridgeContext *bridge = reinterpret_cast<CLogBridgeContext *>(userData);
         if (bridge == nullptr || bridge->callback == nullptr)
         {
             return;
@@ -50,20 +50,21 @@ namespace
     // ASCII lower-case helper for extension checks.
     std::string ToLower(std::string value)
     {
-        std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch)
+        {
             return static_cast<char>(std::tolower(ch));
         });
         return value;
     }
 
     // Detects GLSL input by file extension.
-    bool IsGlslFile(const std::filesystem::path& path)
+    bool IsGlslFile(const std::filesystem::path &path)
     {
         return ToLower(path.extension().string()) == ".glsl";
     }
 
     // Release helpers for nested reflection arrays.
-    void FreeResourceArray(UmbraShaderResourceInfo* array, size_t count)
+    void FreeResourceArray(UmbraShaderResourceInfo *array, size_t count)
     {
         if (!array)
         {
@@ -77,7 +78,7 @@ namespace
         std::free(array);
     }
 
-    void FreeStageIOArray(UmbraShaderStageIOInfo* array, size_t count)
+    void FreeStageIOArray(UmbraShaderStageIOInfo *array, size_t count)
     {
         if (!array)
         {
@@ -91,7 +92,7 @@ namespace
         std::free(array);
     }
 
-    void FreePushConstantArray(UmbraShaderPushConstantInfo* array, size_t count)
+    void FreePushConstantArray(UmbraShaderPushConstantInfo *array, size_t count)
     {
         if (!array)
         {
@@ -100,12 +101,13 @@ namespace
 
         for (size_t i = 0; i < count; ++i)
         {
-            std::free(array[i].name);
+            if (array[i].name)
+                std::free(array[i].name);
         }
         std::free(array);
     }
 
-    void FreeVertexAttributeArray(UmbraVertexAttribute* array, size_t count)
+    void FreeVertexAttributeArray(UmbraVertexAttribute *array, size_t count)
     {
         if (!array)
         {
@@ -114,13 +116,14 @@ namespace
 
         for (size_t i = 0; i < count; ++i)
         {
-            std::free(array[i].name);
+            if (array[i].name)
+                std::free(array[i].name);
         }
         std::free(array);
     }
 
     // Conversion helpers from C++ reflection vectors to C arrays.
-    bool FillResourceArray(const std::vector<umbra::ShaderResourceInfo>& source, UmbraShaderResourceInfo** outArray)
+    bool FillResourceArray(const std::vector<umbra::ShaderResourceInfo> &source, UmbraShaderResourceInfo **outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -128,7 +131,7 @@ namespace
             return true;
         }
 
-        UmbraShaderResourceInfo* array = static_cast<UmbraShaderResourceInfo*>(std::calloc(source.size(), sizeof(UmbraShaderResourceInfo)));
+        UmbraShaderResourceInfo *array = static_cast<UmbraShaderResourceInfo *>(std::calloc(source.size(), sizeof(UmbraShaderResourceInfo)));
         if (!array)
         {
             return false;
@@ -148,7 +151,7 @@ namespace
         return true;
     }
 
-    bool FillStageIOArray(const std::vector<umbra::ShaderStageIOInfo>& source, UmbraShaderStageIOInfo** outArray)
+    bool FillStageIOArray(const std::vector<umbra::ShaderStageIOInfo> &source, UmbraShaderStageIOInfo **outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -156,7 +159,7 @@ namespace
             return true;
         }
 
-        UmbraShaderStageIOInfo* array = static_cast<UmbraShaderStageIOInfo*>(std::calloc(source.size(), sizeof(UmbraShaderStageIOInfo)));
+        UmbraShaderStageIOInfo *array = static_cast<UmbraShaderStageIOInfo *>(std::calloc(source.size(), sizeof(UmbraShaderStageIOInfo)));
         if (!array)
         {
             return false;
@@ -176,7 +179,7 @@ namespace
         return true;
     }
 
-    bool FillPushConstantArray(const std::vector<umbra::ShaderPushConstantInfo>& source, UmbraShaderPushConstantInfo** outArray)
+    bool FillPushConstantArray(const std::vector<umbra::ShaderPushConstantInfo> &source, UmbraShaderPushConstantInfo **outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -184,7 +187,7 @@ namespace
             return true;
         }
 
-        UmbraShaderPushConstantInfo* array = static_cast<UmbraShaderPushConstantInfo*>(std::calloc(source.size(), sizeof(UmbraShaderPushConstantInfo)));
+        UmbraShaderPushConstantInfo *array = static_cast<UmbraShaderPushConstantInfo *>(std::calloc(source.size(), sizeof(UmbraShaderPushConstantInfo)));
         if (!array)
         {
             return false;
@@ -200,7 +203,7 @@ namespace
         return true;
     }
 
-    bool FillVertexArray(const std::vector<umbra::VertexAttribute>& source, UmbraVertexAttribute** outArray)
+    bool FillVertexArray(const std::vector<umbra::VertexAttribute> &source, UmbraVertexAttribute **outArray)
     {
         *outArray = nullptr;
         if (source.empty())
@@ -208,7 +211,7 @@ namespace
             return true;
         }
 
-        UmbraVertexAttribute* array = static_cast<UmbraVertexAttribute*>(std::calloc(source.size(), sizeof(UmbraVertexAttribute)));
+        UmbraVertexAttribute *array = static_cast<UmbraVertexAttribute *>(std::calloc(source.size(), sizeof(UmbraVertexAttribute)));
         if (!array)
         {
             return false;
@@ -229,7 +232,7 @@ namespace
     }
 
     // Populates C reflection object from the C++ reflection model.
-    UMBRA_ResultCode FillCReflectionInfo(const umbra::ShaderReflectionInfo& reflection, UmbraShaderReflectionInfo* outReflectionInfo)
+    UMBRA_ResultCode FillCReflectionInfo(const umbra::ShaderReflectionInfo &reflection, UmbraShaderReflectionInfo *outReflectionInfo)
     {
         outReflectionInfo->shaderType = reflection.shaderType;
         outReflectionInfo->numUniformBuffers = reflection.numUniformBuffers;
@@ -264,13 +267,13 @@ namespace
 extern "C"
 {
     // C API: version query.
-    const char* UmbraCompiler_GetVersion(void)
+    const char *UmbraCompiler_GetVersion(void)
     {
         return umbra::ShaderCompiler::GetVersion();
     }
 
     // C API: log callback registration/clear.
-    void UmbraCompiler_SetLogCallback(UmbraLogCallback callback, void* userData)
+    void UmbraCompiler_SetLogCallback(UmbraLogCallback callback, void *userData)
     {
         g_logBridge.callback = callback;
         g_logBridge.userData = userData;
@@ -285,7 +288,7 @@ extern "C"
     }
 
     // C API: compile one shader file according to request options.
-    UMBRA_ResultCode UmbraCompiler_Compile(const UmbraCompileRequest* request)
+    UMBRA_ResultCode UmbraCompiler_Compile(const UmbraCompileRequest *request)
     {
         if (request == nullptr || request->inputPath == nullptr || request->inputPath[0] == '\0')
         {
@@ -371,7 +374,7 @@ extern "C"
     }
 
     // C API: SPIR-V reflection entry point.
-    UMBRA_ResultCode UmbraCompiler_ReflectSPIRV(const uint32_t* spirvData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo* outReflectionInfo)
+    UMBRA_ResultCode UmbraCompiler_ReflectSPIRV(const uint32_t *spirvData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo *outReflectionInfo)
     {
         if (!spirvData || sizeInBytes == 0 || !outReflectionInfo)
         {
@@ -380,7 +383,7 @@ extern "C"
 
         std::memset(outReflectionInfo, 0, sizeof(*outReflectionInfo));
 
-        const uint8_t* bytes = reinterpret_cast<const uint8_t*>(spirvData);
+        const uint8_t *bytes = reinterpret_cast<const uint8_t *>(spirvData);
         std::vector<uint8_t> shaderCode(bytes, bytes + sizeInBytes);
 
         try
@@ -402,7 +405,7 @@ extern "C"
     }
 
     // C API: DXIL reflection entry point.
-    UMBRA_ResultCode UmbraCompiler_ReflectDXIL(const uint8_t* dxilData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo* outReflectionInfo)
+    UMBRA_ResultCode UmbraCompiler_ReflectDXIL(const uint8_t *dxilData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo *outReflectionInfo)
     {
         if (!dxilData || sizeInBytes == 0 || !outReflectionInfo)
         {
@@ -432,7 +435,7 @@ extern "C"
     }
 
     // C API: release allocations produced by reflection functions.
-    void UmbraCompiler_FreeReflectionInfo(UmbraShaderReflectionInfo* reflectionInfo)
+    void UmbraCompiler_FreeReflectionInfo(UmbraShaderReflectionInfo *reflectionInfo)
     {
         if (!reflectionInfo)
         {

@@ -177,7 +177,7 @@ static const char *UMBRA_ShaderTypeToProfile(UMBRA_ShaderType type)
 }
 
 /* Returns a human-readable stage name for logs and diagnostics output. */
-static const char* UMBRA_GetShaderTypeString(UMBRA_ShaderType type)
+static const char *UMBRA_GetShaderTypeString(UMBRA_ShaderType type)
 {
     switch (type)
     {

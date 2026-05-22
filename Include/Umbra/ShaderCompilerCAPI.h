@@ -29,21 +29,21 @@ extern "C" {
 #endif
 
 /*
- * C API surface for the Umbra shader compiler.
- * - Compile shader files to target bytecode formats.
- * - Reflect SPIR-V and DXIL binaries into plain C structs.
- * - Release reflection allocations via UmbraCompiler_FreeReflectionInfo.
- */
+    * C API surface for the Umbra shader compiler.
+    * - Compile shader files to target bytecode formats.
+    * - Reflect SPIR-V and DXIL binaries into plain C structs.
+    * - Release reflection allocations via UmbraCompiler_FreeReflectionInfo.
+    */
 
-/* Input parameters for one compile invocation. */
+    /* Input parameters for one compile invocation. */
 typedef struct UmbraCompileRequest
 {
-    const char* inputPath;
-    const char* outputDirectory;
-    const char* entryPoint;
-    const char* shaderModel;
-    const char* vulkanVersion;
-    const char* vulkanMemoryLayout;
+    const char *inputPath;
+    const char *outputDirectory;
+    const char *entryPoint;
+    const char *shaderModel;
+    const char *vulkanVersion;
+    const char *vulkanMemoryLayout;
     UMBRA_ShaderType shaderType;
     UMBRA_ShaderPlatformType platformType;
     UMBRA_OptimizationLevel optimizationLevel;
@@ -68,7 +68,7 @@ typedef struct UmbraCompileRequest
 /* Reflected vertex attribute metadata. */
 typedef struct UmbraVertexAttribute
 {
-    char* name;
+    char *name;
     UMBRA_VertexElementFormat format;
     uint32_t location;
     uint32_t bufferIndex;
@@ -79,7 +79,7 @@ typedef struct UmbraVertexAttribute
 /* Generic reflected resource (UBO/image/buffer/sampler). */
 typedef struct UmbraShaderResourceInfo
 {
-    char* name;
+    char *name;
     uint32_t id;
     uint32_t location;
     uint32_t set;
@@ -90,7 +90,7 @@ typedef struct UmbraShaderResourceInfo
 /* Reflected stage input/output entry metadata. */
 typedef struct UmbraShaderStageIOInfo
 {
-    char* name;
+    char *name;
     uint32_t id;
     uint32_t location;
     UMBRA_VertexElementFormat format;
@@ -101,7 +101,7 @@ typedef struct UmbraShaderStageIOInfo
 /* Reflected push constant metadata. */
 typedef struct UmbraShaderPushConstantInfo
 {
-    char* name;
+    char *name;
     uint32_t size;
 } UmbraShaderPushConstantInfo;
 
@@ -120,39 +120,39 @@ typedef struct UmbraShaderReflectionInfo
     size_t numStageInputs;
     size_t numStageOutputs;
 
-    UmbraShaderResourceInfo* uniformBuffers;
-    UmbraShaderResourceInfo* sampledImages;
-    UmbraShaderResourceInfo* storageImages;
-    UmbraShaderResourceInfo* storageBuffers;
-    UmbraShaderResourceInfo* separateSamplers;
-    UmbraShaderResourceInfo* separateImages;
-    UmbraShaderPushConstantInfo* pushConstants;
-    UmbraShaderStageIOInfo* stageInputs;
-    UmbraShaderStageIOInfo* stageOutputs;
-    UmbraVertexAttribute* vertexAttributes;
+    UmbraShaderResourceInfo *uniformBuffers;
+    UmbraShaderResourceInfo *sampledImages;
+    UmbraShaderResourceInfo *storageImages;
+    UmbraShaderResourceInfo *storageBuffers;
+    UmbraShaderResourceInfo *separateSamplers;
+    UmbraShaderResourceInfo *separateImages;
+    UmbraShaderPushConstantInfo *pushConstants;
+    UmbraShaderStageIOInfo *stageInputs;
+    UmbraShaderStageIOInfo *stageOutputs;
+    UmbraVertexAttribute *vertexAttributes;
     size_t vertexAttributeCount;
 } UmbraShaderReflectionInfo;
 
 /* Callback signature for compiler/reflection log forwarding. */
-typedef void(*UmbraLogCallback)(UMBRA_LogType type, const char* message, void* userData);
+typedef void(*UmbraLogCallback)(UMBRA_LogType type, const char *message, void *userData);
 
 /* Returns project version string. */
-UMBRACOMPILER_CAPI const char* UmbraCompiler_GetVersion(void);
+UMBRACOMPILER_CAPI const char *UmbraCompiler_GetVersion(void);
 
 /* Installs or clears callback-based logging integration. */
-UMBRACOMPILER_CAPI void UmbraCompiler_SetLogCallback(UmbraLogCallback callback, void* userData);
+UMBRACOMPILER_CAPI void UmbraCompiler_SetLogCallback(UmbraLogCallback callback, void *userData);
 
 /* Compiles an input shader file to request->platformType output. */
-UMBRACOMPILER_CAPI UMBRA_ResultCode UmbraCompiler_Compile(const UmbraCompileRequest* request);
+UMBRACOMPILER_CAPI UMBRA_ResultCode UmbraCompiler_Compile(const UmbraCompileRequest *request);
 
 /* Reflects SPIR-V words and fills outReflectionInfo. */
-UMBRACOMPILER_CAPI UMBRA_ResultCode UmbraCompiler_ReflectSPIRV(const uint32_t* spirvData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo* outReflectionInfo);
+UMBRACOMPILER_CAPI UMBRA_ResultCode UmbraCompiler_ReflectSPIRV(const uint32_t *spirvData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo *outReflectionInfo);
 
 /* Reflects DXIL bytes and fills outReflectionInfo. */
-UMBRACOMPILER_CAPI UMBRA_ResultCode UmbraCompiler_ReflectDXIL(const uint8_t* dxilData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo* outReflectionInfo);
+UMBRACOMPILER_CAPI UMBRA_ResultCode UmbraCompiler_ReflectDXIL(const uint8_t *dxilData, size_t sizeInBytes, UMBRA_ShaderType shaderType, UmbraShaderReflectionInfo *outReflectionInfo);
 
 /* Releases heap allocations stored in UmbraShaderReflectionInfo. */
-UMBRACOMPILER_CAPI void UmbraCompiler_FreeReflectionInfo(UmbraShaderReflectionInfo* reflectionInfo);
+UMBRACOMPILER_CAPI void UmbraCompiler_FreeReflectionInfo(UmbraShaderReflectionInfo *reflectionInfo);
 
 #ifdef __cplusplus
 }

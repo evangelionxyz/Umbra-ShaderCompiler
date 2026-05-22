@@ -484,7 +484,7 @@ namespace umbra
         fprintf(stream, "const uint8_t %s[] = {", shaderName);
     }
 
-    void DataOutputContext::WriteTextEpilog()
+    void DataOutputContext::WriteTextEpilog() const
     {
         fprintf(stream, "\n};\n");
     }
@@ -967,7 +967,7 @@ namespace umbra
 
         if (spvc_context_create(&context) != SPVC_SUCCESS)
         {
-            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create SPIRV-Cross context.");
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "SPIRV reflection failed: could not create SPIRV-Cross context.");
             return info;
         }
 
@@ -976,22 +976,22 @@ namespace umbra
 
         if (spvc_context_parse_spirv(context, words, wordCount, &ir) != SPVC_SUCCESS)
         {
-            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not parse SPIRV blob.");
             spvc_context_destroy(context);
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "SPIRV reflection failed: could not parse SPIRV blob.");
             return info;
         }
 
         if (spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_COPY, &compiler) != SPVC_SUCCESS)
         {
-            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create SPIRV-Cross compiler.");
             spvc_context_destroy(context);
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "SPIRV reflection failed: could not create SPIRV-Cross compiler.");
             return info;
         }
 
         if (spvc_compiler_create_shader_resources(compiler, &resources) != SPVC_SUCCESS)
         {
-            DispatchLog(UMBRA_LOG_TYPE_ERROR, "SPIRV reflection failed: could not create shader resources.");
             spvc_context_destroy(context);
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "SPIRV reflection failed: could not create shader resources.");
             return info;
         }
 
@@ -1148,7 +1148,7 @@ namespace umbra
 #ifdef _WIN32
         if (shaderCode.empty() || shaderCode.size() < 4)
         {
-            DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXIL reflection failed: shader blob is empty or too small.");
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "DXIL reflection failed: shader blob is empty or too small.");
             return info;
         }
 
@@ -1192,6 +1192,41 @@ namespace umbra
         if (FAILED(result) || !reflection)
         {
             DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXIL reflection failed. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
+
+            switch (result)
+            {
+                case E_INVALIDARG:
+                {
+                    DispatchLog(UMBRA_LOG_TYPE_ERROR, "  - E_INVALIDARG: One or more arguments are invalid");
+                    DispatchLog(UMBRA_LOG_TYPE_ERROR, "  - This usually means the blob is not valid DXIL/DXBC bytecode");
+                    DispatchLog(UMBRA_LOG_TYPE_ERROR, std::format("  - Blob size: {} bytes", shaderCode.size()));
+                    DispatchLog(UMBRA_LOG_TYPE_ERROR, std::format("  - First 16 bytes: {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X} {:02X}",
+                        shaderCode.size() > 0 ? shaderCode[0] : 0, shaderCode.size() > 1 ? shaderCode[1] : 0,
+                        shaderCode.size() > 2 ? shaderCode[2] : 0, shaderCode.size() > 3 ? shaderCode[3] : 0,
+                        shaderCode.size() > 4 ? shaderCode[4] : 0, shaderCode.size() > 5 ? shaderCode[5] : 0,
+                        shaderCode.size() > 6 ? shaderCode[6] : 0, shaderCode.size() > 7 ? shaderCode[7] : 0,
+                        shaderCode.size() > 8 ? shaderCode[8] : 0, shaderCode.size() > 9 ? shaderCode[9] : 0,
+                        shaderCode.size() > 10 ? shaderCode[10] : 0, shaderCode.size() > 11 ? shaderCode[11] : 0,
+                        shaderCode.size() > 12 ? shaderCode[12] : 0, shaderCode.size() > 13 ? shaderCode[13] : 0,
+                        shaderCode.size() > 14 ? shaderCode[14] : 0, shaderCode.size() > 15 ? shaderCode[15] : 0));
+                    break;
+                }
+                case E_OUTOFMEMORY: DispatchLog(UMBRA_LOG_TYPE_ERROR, "  - E_OUTOFMEMORY: Out of memory"); break;
+                case E_FAIL: DispatchLog(UMBRA_LOG_TYPE_ERROR, "  - E_FAIL: General failure"); break;
+                default: DispatchLog(UMBRA_LOG_TYPE_ERROR, std::format("  - Unknown error code: 0x{:08X}", static_cast<uint32_t>(result))); break;
+            }
+
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "[Shader Reflect] Possible causes:");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "  1. ShaderMake might be producing a different format than DXIL");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "  2. The shader compilation might have failed silently");
+            DispatchLog(UMBRA_LOG_TYPE_ERROR, "  3. The blob might be wrapped in an additional container");
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "  4. Try checking if the shader files compile successfully first");
+            return info;
+        }
+
+        if (!reflection)
+        {
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "[Shader Reflect] D3DReflect succeeded but returned null reflection interface");
             return info;
         }
 
@@ -1199,12 +1234,11 @@ namespace umbra
         result = reflection->GetDesc(&shaderDesc);
         if (FAILED(result))
         {
-            DispatchLog(UMBRA_LOG_TYPE_ERROR, "DXIL reflection failed while reading shader description. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
+            DispatchLog(UMBRA_LOG_TYPE_CRITICAL, "DXIL reflection failed while reading shader description. HRESULT=" + std::to_string(static_cast<uint32_t>(result)));
             return info;
         }
 
         DispatchLog(UMBRA_LOG_TYPE_INFO, std::string("DXIL reflection: ") + UMBRA_GetShaderTypeString(type));
-
         info.uniformBuffers.reserve(shaderDesc.ConstantBuffers);
         for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)
         {
@@ -1376,7 +1410,8 @@ namespace umbra
 
         if (type == UMBRA_SHADER_TYPE_VERTEX && !inputs.empty())
         {
-            std::sort(inputs.begin(), inputs.end(), [](const InputAttribute& a, const InputAttribute& b) {
+            std::sort(inputs.begin(), inputs.end(), [](const InputAttribute& a, const InputAttribute& b)
+            {
                 return a.registerIndex < b.registerIndex;
             });
 
@@ -1415,7 +1450,7 @@ namespace umbra
                 attribute.offset = offset;
                 attribute.bufferIndex = 0;
 
-                const uint32_t componentSize = 4;
+                constexpr uint32_t componentSize = 4;
                 const uint32_t attributeSize = componentSize * elementCount;
                 offset += attributeSize;
                 info.vertexAttributes.push_back(std::move(attribute));

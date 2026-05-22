@@ -56,7 +56,7 @@ namespace umbra
     using DxcString = std::basic_string<WCHAR>;
 
     // Converts narrow (ASCII/Latin-1) string to DxcString for DXC arguments.
-    static DxcString AnsiToDxcWide(const std::string& s)
+    static DxcString AnsiToDxcWide(const std::string &s)
     {
         DxcString result;
         result.reserve(s.size());
@@ -66,7 +66,7 @@ namespace umbra
     }
 
     // Converts a filesystem path to a DxcString for use with DXC file-loading APIs.
-    static DxcString PathToDxcWide(const std::filesystem::path& p)
+    static DxcString PathToDxcWide(const std::filesystem::path &p)
     {
 #ifdef _WIN32
         std::wstring ws = p.wstring();
@@ -80,18 +80,18 @@ namespace umbra
     // Converts a wchar_t wide-string literal (e.g. from DXC_ARG_* macros or L"...") to DxcString.
     //   Windows (sizeof(wchar_t)==2): char-by-char copy (same bit width).
     //   Linux   (sizeof(wchar_t)==4): truncates lower 16 bits — safe for all ASCII DXC args.
-    static DxcString WcharToDxcString(const wchar_t* ws)
+    static DxcString WcharToDxcString(const wchar_t *ws)
     {
         if (!ws) return {};
         DxcString result;
-        for (const wchar_t* p = ws; *p; ++p)
+        for (const wchar_t *p = ws; *p; ++p)
             result.push_back(static_cast<WCHAR>(*p));
         return result;
     }
 
     // Compiler log callback used by C++ and bridged by the C API.
-    using LogCallback = void(*)(UMBRA_LogType type, const char* message, void* userData);
-    
+    using LogCallback = void(*)(UMBRA_LogType type, const char *message, void *userData);
+
     // Vertex attribute metadata extracted during reflection.
     struct VertexAttribute
     {
@@ -161,18 +161,19 @@ namespace umbra
 
 #ifdef _WIN32
     // Converts key=value define strings to DXC-compatible macro pairs (Windows / FXC only).
-    static void TokenizeDefineStrings(std::vector<std::string>& in, std::vector<D3D_SHADER_MACRO>& out)
+    static void TokenizeDefineStrings(std::vector<std::string> &in, std::vector<D3D_SHADER_MACRO> &out)
     {
         if (in.empty())
             return;
 
         out.reserve(out.size() + in.size());
-        for (const std::string& defineString : in)
+        for (const std::string &defineString : in)
         {
-            D3D_SHADER_MACRO& define = out.emplace_back();
-            char* s = (char*)defineString.c_str(); // IMPORTANT: "defineString" gets split into tokens divided by '\0'
-            define.Name = strtok(s, "=");
-            define.Definition = strtok(nullptr, "=");
+            D3D_SHADER_MACRO &define = out.emplace_back();
+            char *s = (char *)defineString.c_str(); // IMPORTANT: "defineString" gets split into tokens divided by '\0'
+            char *context = nullptr;
+            define.Name = strtok_s(s, "=", &context);
+            define.Definition = strtok_s(nullptr, "=", &context);
         }
     }
 #endif
@@ -181,12 +182,12 @@ namespace umbra
     // Options are separated by spaces and may be quoted with "double quotes".
     // Backslash (\) means the next character is inserted literally into the output.
     // Cross-platform: works on Windows and Linux.
-    static void TokenizeCompilerOptions(const char* in, std::vector<DxcString>& out)
+    static void TokenizeCompilerOptions(const char *in, std::vector<DxcString> &out)
     {
         DxcString current;
         bool quotes = false;
         bool escape = false;
-        const char* ptr = in;
+        const char *ptr = in;
         while (char ch = *ptr++)
         {
             if (escape)
@@ -224,7 +225,7 @@ namespace umbra
 
     // Utility hash narrowing helper used for stable 32-bit IDs.
     static uint32_t HashToUint(size_t hash)
-    { 
+    {
         return uint32_t(hash) ^ (uint32_t(hash >> 32));
     }
 
@@ -234,9 +235,9 @@ namespace umbra
         return path.lexically_normal().make_preferred().string();
     }
 
-    static bool IsSpace(char ch) 
-    { 
-        return strchr(" \t\r\n", ch) != nullptr; 
+    static bool IsSpace(char ch)
+    {
+        return strchr(" \t\r\n", ch) != nullptr;
     }
 
     static bool HasRepeatingSpace(char a, char b)
@@ -283,9 +284,9 @@ namespace umbra
         std::filesystem::path filepath;
         std::filesystem::path outputFilepath;
 
-        void AddDefine(const std::string& define) { defines.push_back(define); }
-        void AddSPIRVExtension(const std::string& ext) { spirvExtensions.push_back(ext); }
-        void AddCompilerOptions(const std::string& opt) { compilerOptions.push_back(opt); }
+        void AddDefine(const std::string &define) { defines.push_back(define); }
+        void AddSPIRVExtension(const std::string &ext) { spirvExtensions.push_back(ext); }
+        void AddCompilerOptions(const std::string &opt) { compilerOptions.push_back(opt); }
 
         std::vector<std::filesystem::path> includeDirectories;
         std::vector<std::filesystem::path> relaxedIncludes;
@@ -327,16 +328,16 @@ namespace umbra
     class DataOutputContext
     {
     public:
-        FILE* stream = nullptr;
+        FILE *stream = nullptr;
 
-        DataOutputContext(const char* file, bool textMode);
+        DataOutputContext(const char *file, bool textMode);
         ~DataOutputContext();
-        bool WriteDataAsText(const void* data, size_t size);
-        void WriteTextPreamble(const char* shaderName, const std::string& combinedDefines);
-        void WriteTextEpilog();
-        bool WriteDataAsBinary(const void* data, size_t size);
-        static bool WriteDataAsTextCallback(const void* data, size_t size, void* context);
-        static bool WriteDataAsBinaryCallback(const void* data, size_t size, void* context);
+        bool WriteDataAsText(const void *data, size_t size);
+        void WriteTextPreamble(const char *shaderName, const std::string &combinedDefines);
+        void WriteTextEpilog() const;
+        bool WriteDataAsBinary(const void *data, size_t size);
+        static bool WriteDataAsTextCallback(const void *data, size_t size, void *context);
+        static bool WriteDataAsBinaryCallback(const void *data, size_t size, void *context);
 
     private:
         uint32_t m_lineLength = 129;
@@ -346,7 +347,7 @@ namespace umbra
     {
     public:
         // Registers global logging callback for compiler operations.
-        static void SetLogCallback(LogCallback callback, void* userData = nullptr);
+        static void SetLogCallback(LogCallback callback, void *userData = nullptr);
 
         // Clears active logging callback.
         static void ClearLogCallback();
@@ -364,7 +365,7 @@ namespace umbra
         static void DumpShader(const CompilerOptions &options, std::vector<uint8_t> &shaderCode, const std::string &outputPath);
 
         // Returns project version string.
-        static const char* GetVersion();
+        static const char *GetVersion();
     };
 
     // Reflection API for inspecting compiled shader bytecode.
@@ -375,7 +376,7 @@ namespace umbra
         static ShaderReflectionInfo SPIRVReflect(UMBRA_ShaderType type, const std::vector<uint8_t> &shaderCode);
 
         // Reflects DXIL binary into ShaderReflectionInfo.
-        static ShaderReflectionInfo DXILReflect(UMBRA_ShaderType type, const std::vector<uint8_t>& shaderCode);
+        static ShaderReflectionInfo DXILReflect(UMBRA_ShaderType type, const std::vector<uint8_t> &shaderCode);
     };
 }
 
