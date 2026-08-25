@@ -60,7 +60,7 @@ install(EXPORT UmbraCompilerTargets
     DESTINATION lib/cmake/UmbraCompiler
 )
 
-option(UMBRACOMPILER_BUILD_EXAMPLES "Build UmbraCompiler examples" ON)
+option(UMBRACOMPILER_BUILD_EXAMPLES "Build UmbraCompiler examples" OFF)
 if (UMBRACOMPILER_BUILD_EXAMPLES)
     include(${CMAKE_CURRENT_SOURCE_DIR}/Example/c_example.cmake)
     include(${CMAKE_CURRENT_SOURCE_DIR}/Example/cpp_example.cmake)
